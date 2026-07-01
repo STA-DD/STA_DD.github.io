@@ -1,0 +1,4470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REBIRTH</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/ogl@0.0.102/dist/ogl.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0a;color:#f0ede6;font-family:'Space Grotesk',sans-serif;cursor:none}
+
+/* CURSOR */
+#cur{position:fixed;width:8px;height:8px;background:#f0ede6;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .3s,height .3s,background .3s}
+#cur.hover{width:36px;height:36px;background:transparent;border:1px solid #f0ede6}
+
+/* CANVAS BG */
+#bg-canvas{position:fixed;inset:0;z-index:0;overflow:hidden}
+
+/* UI LAYER */
+#ui{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;transform-origin:center center;transform:scale(0.85);opacity:0}
+
+/* NAV */
+nav{display:flex;justify-content:space-between;align-items:flex-start;padding:32px 48px;pointer-events:all}
+.logo{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;line-height:1.5}
+.logo span{display:block}
+.logo .sub{font-weight:300;opacity:.5;font-size:10px;letter-spacing:.3em}
+.nav-links{display:flex;gap:48px;align-items:center}
+.nav-links a{font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:#f0ede6;text-decoration:none;opacity:.5;transition:opacity .3s,transform .3s cubic-bezier(.16,1,.3,1);pointer-events:all;cursor:none;position:relative;padding:2px 4px}
+.nav-links a::before{content:'';position:absolute;inset:0;background:#1a8c3a;transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(.16,1,.3,1);z-index:-1}
+.nav-links a:hover{opacity:1;transform:scale(1.06)}
+.nav-links a:hover::before{transform:scaleX(1)}
+
+/* GLOBAL NAV */
+#global-nav{position:fixed;top:0;left:0;right:0;z-index:600;display:none;justify-content:space-between;align-items:center;padding:24px 48px;background:rgba(10,10,10,.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(240,237,230,.08);pointer-events:all}
+#global-nav.visible{display:flex}
+#global-nav .gn-logo{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;line-height:1.5;color:#f0ede6;opacity:0;transform:translateY(-20px);transition:opacity .6s cubic-bezier(.34,1.56,.64,1),transform .6s cubic-bezier(.34,1.56,.64,1)}
+#global-nav.visible .gn-logo{opacity:1;transform:translateY(0)}
+#global-nav .gn-logo .sub{display:block;font-weight:300;opacity:.5;font-size:10px;letter-spacing:.3em}
+#global-nav .gn-links{display:flex;gap:16px;align-items:center}
+#global-nav .gn-links a{font-size:13px;letter-spacing:.15em;text-transform:uppercase;text-decoration:none;cursor:none;position:relative;padding:10px 24px;border-radius:24px;background:#f0ede6;border:1px solid #f0ede6;transition:border-color .3s;overflow:hidden;display:inline-block;opacity:0;transform:translateY(-30px)}
+#global-nav.visible .gn-links a{opacity:1;transform:translateY(0);transition:opacity .7s cubic-bezier(.34,1.56,.64,1),transform .7s cubic-bezier(.34,1.56,.64,1),border-color .3s}
+#global-nav.visible .gn-links a:nth-child(1){transition-delay:.1s}
+#global-nav.visible .gn-links a:nth-child(2){transition-delay:.18s}
+#global-nav.visible .gn-links a:nth-child(3){transition-delay:.26s}
+#global-nav.visible .gn-links a:nth-child(4){transition-delay:.34s}
+#global-nav .gn-links a .label-stack{position:relative;display:block;height:1.2em;overflow:hidden}
+#global-nav .gn-links a .label-main{display:block;color:#0a0a0a;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+#global-nav .gn-links a .label-hover{display:block;color:#f0ede6;position:absolute;top:100%;left:0;right:0;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+#global-nav .gn-links a::before{content:'';position:absolute;bottom:0;left:50%;width:300%;height:300%;background:#0a0a0a;border-radius:50%;transform:translate(-50%,100%);transition:transform .5s cubic-bezier(.16,1,.3,1);z-index:0}
+#global-nav .gn-links a:hover{border-color:#0a0a0a}
+#global-nav .gn-links a:hover::before{transform:translate(-50%,0)}
+#global-nav .gn-links a:hover .label-main{transform:translateY(-120%)}
+#global-nav .gn-links a:hover .label-hover{transform:translateY(-100%)}
+
+/* CENTER — left-bottom hero card */
+.center{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;position:relative;padding:0 56px 56px}
+
+/* HERO CARD */
+#hero-card{
+  max-width:780px;
+  margin-left:30px;
+  background:rgba(28,28,32,.58);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(240,237,230,.25);
+  border-radius:10px;
+  padding:44px 48px 40px;
+  pointer-events:all;
+  box-shadow:
+    0 0 30px rgba(240,237,230,.12) inset,
+    0 4px 20px rgba(0,0,0,.3),
+    0 0 20px rgba(122,79,122,.3),
+    0 0 40px rgba(122,79,122,.15),
+    0 0 60px rgba(122,79,122,.08);
+  transform-style:preserve-3d;
+  transform-origin:left bottom;
+  transform:scale(0.88);
+  transition:transform 0.7s ease-out;
+  position:relative;
+  overflow:hidden;
+}
+#hero-card::before{
+  content:'';
+  position:absolute;
+  width:400px;
+  height:400px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(122,79,122,0.7) 0%, rgba(122,79,122,0.3) 30%, transparent 60%);
+  pointer-events:none;
+  opacity:var(--glow-active, 0);
+  transition:opacity 0.3s;
+  left:var(--mouse-x, 50%);
+  top:var(--mouse-y, 50%);
+  transform:translate(-50%, -50%);
+  filter:blur(8px);
+}
+#hero-card > *{
+  transform-style:preserve-3d;
+  transition:transform 0.7s ease-out;
+}
+
+/* TITLE lines */
+#title-wrap{display:flex;flex-direction:column;user-select:none;margin-bottom:18px;gap:8px}
+.title-line{display:block;font-family:'Press Start 2P',monospace;font-size:clamp(22px,3.8vw,52px);font-weight:400;letter-spacing:.04em;line-height:1.4;text-transform:uppercase}
+.title-line.outline{color:transparent;-webkit-text-stroke:1px #f0ede6}
+.title-line.filled{color:#f0ede6}
+.sh-wrap{display:inline-block;overflow:hidden;vertical-align:top;line-height:inherit}
+.sh-inner{display:flex;flex-direction:column;will-change:transform}
+
+/* SUBTITLE */
+.subtitle{font-size:13px;line-height:1.75;letter-spacing:.02em;color:#f0ede6;opacity:.5;font-weight:300;max-width:400px;margin-bottom:32px}
+
+/* CTA */
+.cta-wrap{display:flex;align-items:center;gap:20px;pointer-events:all}
+.cta-btn{border:1px solid rgba(240,237,230,.5);border-radius:40px;padding:13px 34px;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:#f0ede6;cursor:none;transition:letter-spacing .4s;position:relative;overflow:hidden}
+.cta-btn::before{content:'';position:absolute;inset:0;background:#f0ede6;transform:scaleX(0);transform-origin:left;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+.cta-btn:hover::before{transform:scaleX(1)}
+.cta-btn:hover{letter-spacing:.4em}
+.cta-btn span{position:relative;z-index:1;transition:color .4s}
+.cta-btn:hover span{color:#0a0a0a}
+
+/* BOTTOM */
+.bottom{display:flex;justify-content:space-between;align-items:flex-end;padding:0 56px 18px;pointer-events:all}
+.byline{font-size:10px;letter-spacing:.25em;text-transform:uppercase;opacity:.3}
+.year{font-size:10px;letter-spacing:.2em;opacity:.3}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* VERTICAL RULE */
+.v-rule{position:fixed;right:48px;top:50%;transform:translateY(-50%);width:4px;height:100px;background:rgba(240,237,230,.12);z-index:10;border-radius:2px}
+.v-rule-fill{position:absolute;top:0;left:0;width:4px;background:#f0ede6;height:0%;border-radius:2px}
+.v-rule-percent{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:13px;font-weight:700;letter-spacing:.05em;color:#f0ede6;opacity:.5;font-family:'Press Start 2P',monospace;white-space:nowrap}
+
+
+/* DECORATIVE MARQUEE */
+.deco-marquee{position:fixed;left:128px;top:56px;width:602px;overflow:hidden;z-index:12;pointer-events:none;-webkit-mask-image:linear-gradient(to right,transparent,#fff 60px,#fff calc(100% - 60px),transparent);mask-image:linear-gradient(to right,transparent,#fff 60px,#fff calc(100% - 60px),transparent)}
+.deco-track{display:flex;will-change:transform}
+.deco-track span{font-size:15px;font-weight:400;letter-spacing:.25em;text-transform:uppercase;white-space:nowrap;padding-right:40px;flex-shrink:0}
+
+#corner-label{position:fixed;left:56px;bottom:56px;z-index:12;pointer-events:none}
+.cl-text{font-size:clamp(28px,4vw,52px);font-weight:700;letter-spacing:-.02em;color:#f0ede6;line-height:1;margin-bottom:10px}
+.cl-cursor{animation:blink 1s step-end infinite}
+#cl-barcode{display:block;opacity:.7}
+#corner-frame{position:fixed;inset:0;z-index:11;pointer-events:none;opacity:0;animation:frameAppear 1.2s ease-out forwards;animation-delay:.3s}
+@keyframes frameAppear{0%{opacity:0}100%{opacity:1}}
+/* horizontal lines */
+#corner-frame .cf-ht,#corner-frame .cf-hb{position:absolute;left:0;width:100%;height:1px;background:rgba(240,237,230,.65);transform:scaleX(0);animation:lineExpandH 1s cubic-bezier(.16,1,.3,1) forwards}
+#corner-frame .cf-ht{top:40px;transform-origin:left;animation-delay:.5s}
+#corner-frame .cf-hb{bottom:40px;transform-origin:right;animation-delay:.6s}
+@keyframes lineExpandH{0%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+/* vertical lines */
+#corner-frame .cf-vl,#corner-frame .cf-vr{position:absolute;top:0;width:1px;height:100%;background:rgba(240,237,230,.65);transform:scaleY(0);animation:lineExpandV 1s cubic-bezier(.16,1,.3,1) forwards}
+#corner-frame .cf-vl{left:40px;transform-origin:top;animation-delay:.7s}
+#corner-frame .cf-vr{right:40px;transform-origin:bottom;animation-delay:.8s}
+@keyframes lineExpandV{0%{transform:scaleY(0)}100%{transform:scaleY(1)}}
+/* corner dots */
+#corner-frame::before,#corner-frame::after,#corner-frame .cf-bl,#corner-frame .cf-br{content:'';position:absolute;width:8px;height:8px;background:#f0ede6;opacity:0;animation:dotAppear .6s ease-out forwards}
+#corner-frame::before{top:40px;left:40px;transform:translate(-50%,-50%);animation-delay:.9s}
+#corner-frame::after{top:40px;right:40px;transform:translate(50%,-50%);animation-delay:1s}
+#corner-frame .cf-bl{bottom:40px;left:40px;transform:translate(-50%,50%);animation-delay:1.1s}
+#corner-frame .cf-br{bottom:40px;right:40px;transform:translate(50%,50%);animation-delay:1.2s}
+@keyframes dotAppear{0%{opacity:0;transform:translate(-50%,-50%) scale(0)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+#loader{position:fixed;inset:0;z-index:1000;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s ease}
+#loader.hide{opacity:0;pointer-events:none}
+#loader-canvas{position:absolute;inset:0;z-index:0}
+.loader-ui{position:relative;z-index:1;width:60%;max-width:540px;text-align:center}
+.loader-label{font-size:10px;letter-spacing:.35em;text-transform:uppercase;color:rgba(240,237,230,.25);margin-bottom:8px;font-family:'Space Grotesk',monospace}
+.loader-trough{width:100%;height:18px;background:rgba(240,237,230,.05);position:relative;border:1px solid rgba(240,237,230,.12)}
+.loader-fill{height:100%;width:0%;background:#f0ede6;position:relative;transition:none}
+.loader-fill::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.3)}
+.loader-ticks{position:absolute;inset:0;display:flex}
+.loader-tick{flex:1;border-right:1px solid rgba(10,10,10,.6)}
+.loader-pct{font-size:11px;letter-spacing:.2em;color:rgba(240,237,230,.35);margin-top:6px;font-family:'Space Grotesk',monospace;text-align:right}
+#loader-complete{margin-top:28px;display:flex;gap:0;opacity:0;transition:opacity .3s;justify-content:center}
+
+/* REVEAL TRANSITION */
+#reveal-canvas{position:fixed;inset:0;z-index:1001;pointer-events:none;display:none}
+#page-clip{position:fixed;inset:0;z-index:998;clip-path:inset(50% 50% 50% 50%);transition:none}
+
+/* PAGE TRANSITION */
+#veil{position:fixed;inset:0;background:#0a0a0a;z-index:500;pointer-events:none;opacity:0;transition:opacity .6s ease}
+#rect-canvas{position:fixed;inset:0;z-index:498;pointer-events:none;display:none}
+/* TRAIL */
+#trail-canvas{position:fixed;inset:0;z-index:12;pointer-events:none;mix-blend-mode:difference;display:none}
+#veil.show{opacity:1;pointer-events:all}
+
+/* INNER PAGE */
+#inner{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;overflow-y:auto}
+#inner.active{pointer-events:all}
+#inner-canvas{position:fixed;top:0;left:0;width:100%;height:100vh;z-index:19;pointer-events:none;display:none}
+.inner-ui{position:relative;z-index:2;display:flex;flex-direction:column;height:100%;padding:100px 56px 40px;pointer-events:none}
+.inner-nav{display:flex;justify-content:space-between;align-items:center;pointer-events:all;padding-bottom:24px}
+.inner-nav .nav-links a{position:relative;display:inline-block;transition:transform .3s cubic-bezier(.16,1,.3,1);padding:2px 4px}
+.inner-nav .nav-links a::before{content:'';position:absolute;inset:0;background:#1a8c3a;transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(.16,1,.3,1);z-index:-1}
+.inner-nav .nav-links a:hover{transform:scale(1.06)}
+.inner-nav .nav-links a:hover::before{transform:scaleX(1)}
+.inner-back{font-size:13px;letter-spacing:.25em;text-transform:uppercase;color:#f0ede6;opacity:.8;cursor:none;transition:opacity .3s,transform .3s cubic-bezier(.16,1,.3,1);border:none;background:none;font-family:'Space Grotesk',sans-serif;font-weight:700;position:relative;padding:4px 8px}
+.inner-back::before{content:'';position:absolute;inset:0;background:#1a8c3a;transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(.16,1,.3,1);z-index:-1}
+.inner-back:hover{opacity:1;transform:scale(1.06)}
+.inner-back:hover::before{transform:scaleX(1)}
+.inner-title-area{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;max-width:100%;min-height:100vh;margin-top:-120px;margin-bottom:60vh}
+.curved-text-wrap{position:relative;width:100%;height:600px;display:flex;align-items:center;justify-content:center;margin:-30vh 0 0;pointer-events:all;cursor:grab;-webkit-mask-image:linear-gradient(to right,transparent,#fff 15%,#fff 85%,transparent);mask-image:linear-gradient(to right,transparent,#fff 15%,#fff 85%,transparent)}
+.curved-text-wrap:active{cursor:grabbing}
+.curved-text-svg{width:100%;height:100%;max-width:1440px}
+.curved-text{font-family:'Space Grotesk',sans-serif;text-transform:uppercase}
+.inner-eyebrow{font-size:10px;letter-spacing:.4em;text-transform:uppercase;opacity:0;margin-bottom:24px;transform:translateY(20px);transition:opacity .8s ease,transform .8s ease}
+.inner-heading{font-size:clamp(36px,6vw,88px);font-weight:700;line-height:1.2;letter-spacing:-.02em;text-transform:uppercase;text-align:center;white-space:nowrap}
+.inner-heading em{font-style:normal;-webkit-text-stroke:1px #f0ede6;color:transparent}
+.inner-heading .ch{display:inline-block;opacity:0;transform:translateY(120%) scaleY(2.3) scaleX(0.7);transform-origin:50% 0%;will-change:opacity,transform;transition:opacity 1.2s cubic-bezier(.34,1.56,.64,1),transform 1.2s cubic-bezier(.34,1.56,.64,1)}
+.inner-heading em .ch{-webkit-text-stroke:1px #f0ede6;color:transparent}
+.inner-body{font-size:14px;line-height:1.9;opacity:0;font-weight:300;letter-spacing:.04em;max-width:480px;transform:translateY(20px);transition:opacity .9s cubic-bezier(.34,1.56,.64,1),transform .9s cubic-bezier(.34,1.56,.64,1)}
+.inner-fade-in .inner-eyebrow{opacity:.3;transform:translateY(0)}
+.inner-fade-in .inner-heading .ch{opacity:1;transform:translateY(0) scaleY(1) scaleX(1)}
+.inner-fade-in .inner-body{opacity:.45;transform:translateY(0)}
+.inner-footer{display:flex;justify-content:space-between;align-items:flex-end;pointer-events:all}
+.inner-links{display:flex;gap:40px}
+.inner-links a{font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:#f0ede6;opacity:.3;cursor:none;transition:opacity .3s}
+.inner-links a:hover{opacity:1}
+
+/* INNER2 PAGE */
+#inner2{position:fixed;inset:0;z-index:20;display:none;background:#0a0a0a;color:#f0ede6;font-family:'Space Grotesk',sans-serif;overflow:hidden}
+#inner2.active{pointer-events:all}
+.i2-nav{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;justify-content:space-between;align-items:flex-start;padding:32px 48px}
+.i2-logo{font-size:13px;font-weight:700;letter-spacing:.05em;line-height:1.4;max-width:320px}
+.i2-logo span{display:block;opacity:.5;font-size:11px;font-weight:300;letter-spacing:.2em;text-transform:uppercase;margin-top:4px}
+.i2-nav-links{display:flex;gap:48px;align-items:center}
+.i2-nav-links a{font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:#f0ede6;text-decoration:none;opacity:.5;transition:opacity .3s,transform .3s cubic-bezier(.16,1,.3,1);cursor:none;position:relative;padding:2px 4px}
+.i2-nav-links a::before{content:'';position:absolute;inset:0;background:#1a8c3a;transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(.16,1,.3,1);z-index:-1}
+.i2-nav-links a:hover{opacity:1;transform:scale(1.06)}
+.i2-nav-links a:hover::before{transform:scaleX(1)}
+.i2-back{font-size:13px;letter-spacing:.25em;text-transform:uppercase;color:#f0ede6;opacity:.8;cursor:none;transition:opacity .3s,transform .3s cubic-bezier(.16,1,.3,1);border:none;background:none;font-family:'Space Grotesk',sans-serif;font-weight:700;position:relative;padding:4px 8px}
+.i2-back::before{content:'';position:absolute;inset:0;background:#1a8c3a;transform:scaleX(0);transform-origin:left;transition:transform .22s cubic-bezier(.16,1,.3,1);z-index:-1}
+.i2-back:hover{opacity:1;transform:scale(1.06)}
+.i2-back:hover::before{transform:scaleX(1)}
+.i2-logo-fixed{position:fixed;top:80px;left:48px;z-index:5;font-size:13px;font-weight:700;letter-spacing:.05em;line-height:1.4;color:#f0ede6}
+.i2-logo-fixed span{display:block;opacity:.5;font-size:11px;font-weight:300;letter-spacing:.2em;text-transform:uppercase;margin-top:4px}
+#gn-back{font-size:13px;letter-spacing:.15em;text-transform:uppercase;cursor:none;border:1px solid #f0ede6;background:#f0ede6;font-family:'Space Grotesk',sans-serif;font-weight:700;padding:10px 24px;border-radius:24px;display:none;position:relative;overflow:hidden;transition:border-color .3s;opacity:0;transform:translateY(-30px)}
+#gn-back.visible{display:inline-block;opacity:1;transform:translateY(0);transition:opacity .7s cubic-bezier(.34,1.56,.64,1),transform .7s cubic-bezier(.34,1.56,.64,1),border-color .3s;transition-delay:.05s}
+#gn-back .label-stack{position:relative;display:block;height:1.2em;overflow:hidden}
+#gn-back .label-main{display:block;color:#0a0a0a;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+#gn-back .label-hover{display:block;color:#f0ede6;position:absolute;top:100%;left:0;right:0;transition:transform .5s cubic-bezier(.16,1,.3,1)}
+#gn-back::before{content:'';position:absolute;bottom:0;left:50%;width:300%;height:300%;background:#0a0a0a;border-radius:50%;transform:translate(-50%,100%);transition:transform .5s cubic-bezier(.16,1,.3,1);z-index:0}
+#gn-back:hover{border-color:#0a0a0a}
+#gn-back:hover::before{transform:translate(-50%,0)}
+#gn-back:hover .label-main{transform:translateY(-120%)}
+#gn-back:hover .label-hover{transform:translateY(-100%)}
+.i2-menu-toggle{position:fixed;right:48px;top:50%;transform:translateY(-50%);z-index:150;background:none;border:none;color:#f0ede6;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:900;letter-spacing:.08em;cursor:pointer;display:flex;align-items:center;gap:12px;transition:right .65s cubic-bezier(.16,1,.3,1),color .3s,transform .3s cubic-bezier(.34,1.56,.64,1)}
+.i2-menu-toggle.open{right:calc(30% + 48px)}
+.i2-menu-toggle:hover{color:#fff;transform:translateY(-50%) scale(1.05)}
+.i2-toggle-text{position:relative;height:1.2em;overflow:hidden;display:block}
+.i2-toggle-line{display:block;transition:transform .6s cubic-bezier(.34,1.56,.64,1)}
+.i2-toggle-line:first-child{transform:translateY(0)}
+.i2-toggle-line:last-child{transform:translateY(100%)}
+.i2-menu-toggle.open .i2-toggle-text .i2-toggle-line:first-child{transform:translateY(-100%)}
+.i2-menu-toggle.open .i2-toggle-text .i2-toggle-line:last-child{transform:translateY(0)}
+.i2-toggle-icon{position:relative;width:20px;height:20px;display:block}
+.i2-toggle-icon-h,.i2-toggle-icon-v{position:absolute;left:50%;top:50%;width:100%;height:2px;background:currentColor;transform-origin:center;transition:transform .8s cubic-bezier(.34,1.56,.64,1)}
+.i2-toggle-icon-h{transform:translate(-50%,-50%)}
+.i2-toggle-icon-v{transform:translate(-50%,-50%) rotate(90deg)}
+.i2-menu-toggle.open .i2-toggle-icon{transform:rotate(225deg)}
+.i2-menu-panel{position:fixed;top:0;right:0;bottom:0;width:30%;max-width:500px;min-width:320px;z-index:100;transform:translateX(100%);transition:transform .85s cubic-bezier(.16,1,.3,1);pointer-events:none;overflow-y:auto;will-change:transform}
+.i2-menu-panel::before{content:'';position:absolute;inset:0;background:#B497CF;z-index:-1;will-change:transform;transform:translateX(0);transition:transform .75s cubic-bezier(.16,1,.3,1)}
+.i2-menu-panel::after{content:'';position:absolute;inset:0;background:#5227FF;z-index:-2;will-change:transform;transform:translateX(0);transition:transform .7s cubic-bezier(.16,1,.3,1)}
+.i2-menu-panel-bg{position:absolute;inset:0;background:#f0ede6;z-index:0}
+.i2-menu-panel.active{transform:translateX(0);pointer-events:all}
+.i2-menu-panel.active::after{transform:translateX(-100%);transition-delay:.05s}
+.i2-menu-panel.active::before{transform:translateX(-100%);transition-delay:.15s}
+.i2-menu-panel:not(.active)::before{transform:translateX(0);transition-delay:0s}
+.i2-menu-panel:not(.active)::after{transform:translateX(0);transition-delay:0s}
+
+/* GLITCH EFFECTS */
+.glitch-effects{background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.1) 2px,rgba(0,0,0,.1) 4px),radial-gradient(ellipse at center,transparent 0%,transparent 60%,rgba(0,0,0,.3) 100%);backdrop-filter:blur(0.5px);transition:opacity .1s ease}
+.glitch-effects.active{opacity:1;animation:scanlineMove 8s linear infinite}
+.glitch-effects::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.03) 0px,transparent 1px,transparent 2px);pointer-events:none}
+.glitch-effects::after{content:'';position:absolute;inset:0;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><filter id="n"><feTurbulence baseFrequency="0.9" numOctaves="3" /><feColorMatrix values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.03 0" /></filter><rect width="300" height="300" filter="url(%23n)" /></svg>');opacity:.5;pointer-events:none;mix-blend-mode:overlay}
+@keyframes scanlineMove{0%{transform:translateY(0)}100%{transform:translateY(20px)}}
+.i2-menu-close{position:absolute;top:32px;right:32px;background:none;border:none;font-family:'Space Grotesk',sans-serif;font-size:16px;letter-spacing:.1em;color:#0a0a0a;cursor:pointer;z-index:10;opacity:0;transform:translateY(-10px);transition:opacity .4s ease .5s,transform .4s ease .5s}
+.i2-menu-close:hover{opacity:.6!important}
+.i2-menu-panel.active .i2-menu-close{opacity:1;transform:translateY(0)}
+.i2-menu-inner{position:relative;min-height:100%;display:flex;align-items:center;padding:80px 48px;z-index:5}
+.i2-menu-list{display:flex;flex-direction:column;gap:clamp(8px,1.5vh,16px);width:100%}
+.i2-menu-panel .i2-menu-item{font-size:clamp(32px,5vw,56px);font-weight:700;letter-spacing:-.03em;line-height:1.15;color:#0a0a0a;position:relative;cursor:pointer;transition:color .25s;display:block;will-change:transform,opacity}
+.i2-menu-panel .i2-menu-item::before{content:attr(data-index);position:absolute;right:-40px;top:50%;transform:translateY(-50%);font-size:clamp(14px,1.5vw,20px);font-weight:400;letter-spacing:.1em;color:#5227FF;opacity:1}
+.i2-menu-panel .i2-menu-item:hover{color:#5227FF}
+.i2-menu-panel .i2-menu-label{display:inline-block;transform:translateY(140%) rotate(10deg);opacity:0;transition:transform .8s cubic-bezier(.34,1.56,.64,1),opacity .6s ease;will-change:transform,opacity}
+.i2-menu-panel.active .i2-menu-item:nth-child(1) .i2-menu-label{transform:translateY(0) rotate(0);opacity:1;transition-delay:.25s}
+.i2-menu-panel.active .i2-menu-item:nth-child(2) .i2-menu-label{transform:translateY(0) rotate(0);opacity:1;transition-delay:.32s}
+.i2-menu-panel.active .i2-menu-item:nth-child(3) .i2-menu-label{transform:translateY(0) rotate(0);opacity:1;transition-delay:.39s}
+.i2-menu-panel.active .i2-menu-item:nth-child(4) .i2-menu-label{transform:translateY(0) rotate(0);opacity:1;transition-delay:.46s}
+.i2-menu-panel.active .i2-menu-item:nth-child(5) .i2-menu-label{transform:translateY(0) rotate(0);opacity:1;transition-delay:.53s}
+.i2-menu-panel.active .i2-menu-item:nth-child(6) .i2-menu-label{transform:translateY(0) rotate(0);opacity:1;transition-delay:.60s}
+
+
+
+/* FLOATING WINDOWS */
+.win{position:absolute;z-index:30;background:#0e0e0c;border:1px solid rgba(240,237,230,.15);user-select:none;display:none;box-shadow:0 8px 32px rgba(0,0,0,.6);pointer-events:all;transform:scale(0.3) translateY(30px);opacity:0}
+.win.active{display:block;animation:winPopIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards}
+@keyframes winPopIn{to{transform:scale(1) translateY(0);opacity:1}}
+.win-bar{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:#1a1a18;border-bottom:1px solid rgba(240,237,230,.1)}
+.win-title{font-size:11px;letter-spacing:.15em;color:rgba(240,237,230,.7);font-family:'Space Grotesk',monospace}
+.win-close{font-size:13px;color:rgba(240,237,230,.4);cursor:pointer;line-height:1;padding:0 2px;transition:color .2s;background:none;border:none}
+.win-close:hover{color:#f0ede6}
+.win-body{padding:14px 16px;font-family:'Space Grotesk',monospace;font-size:10px;letter-spacing:.12em;color:rgba(240,237,230,.5);line-height:2}
+.win-row{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(240,237,230,.05);padding-bottom:4px;margin-bottom:4px}
+.win-row:last-child{border-bottom:none;margin-bottom:0}
+.win-key{opacity:.4}
+.win-val{color:rgba(240,237,230,.8);text-align:right}
+.about-section{min-height:100vh;padding:150vh 56px 60vh;display:flex;flex-direction:column;justify-content:center;border-top:1px solid rgba(240,237,230,.08);position:relative;overflow:hidden}
+.about-label{font-size:10px;letter-spacing:.4em;text-transform:uppercase;opacity:.3;margin-bottom:48px;text-align:right}
+.about-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:80px;align-items:start}
+.about-img-box{aspect-ratio:3/4;background:rgba(240,237,230,.04);border:1px solid rgba(240,237,230,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;border-radius:12px}
+.about-img-placeholder{font-size:10px;letter-spacing:.3em;text-transform:uppercase;opacity:.15}
+.about-portrait{width:100%;height:100%;object-fit:cover;object-position:center;opacity:0;transform:translateX(120%);transition:opacity 1.4s cubic-bezier(.16,1,.3,1),transform 1.4s cubic-bezier(.16,1,.3,1)}
+.about-img-box::before{content:'';position:absolute;inset:0;background:rgba(240,237,230,.95);transform:translateX(100%);transition:transform 1.3s cubic-bezier(.16,1,.3,1);z-index:1;pointer-events:none}
+.about-img-box::after{content:'';position:absolute;inset:0;background:rgba(59,130,246,.65);transform:translateX(100%);transition:transform 1.2s cubic-bezier(.16,1,.3,1);z-index:2;pointer-events:none}
+.about-img-box[style*="--layer-2"]::after{transform:translateX(-100%)}
+.about-img-box[style*="--layer-1"]::before{transform:translateX(-100%)}
+.about-right{text-align:right}
+.about-name{font-size:clamp(28px,4vw,56px);font-weight:700;letter-spacing:-.02em;text-transform:uppercase;line-height:1;margin-bottom:20px}
+.about-name em{font-style:normal;-webkit-text-stroke:1px #f0ede6;color:transparent}
+.about-name .ch{display:inline-block;opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.about-name em .ch{-webkit-text-stroke:1px #f0ede6;color:transparent}
+.about-roles{font-size:11px;letter-spacing:.2em;opacity:0;margin-bottom:36px;text-transform:uppercase;transform:translateY(12px);transition:opacity .7s ease,transform .7s ease}
+.about-roles span{margin:0 8px}
+.about-roles span:first-child{margin-left:0}
+.about-tagline{font-size:clamp(16px,2vw,22px);font-weight:700;line-height:1.4;margin-bottom:32px;letter-spacing:-.01em}
+.about-tagline .ch{display:inline-block;opacity:0;transform:translateY(12px);transition:opacity .45s ease,transform .45s ease}
+.about-para{font-size:14px;line-height:1.9;opacity:0;font-weight:300;margin-bottom:20px;padding-left:30%;transform:translateY(12px);transition:opacity .8s ease,transform .8s ease;cursor:pointer}
+.about-para:hover{filter:blur(0px)}
+.about-para.blur-active{animation:blurPulse 0.6s ease-out}
+.about-name{font-size:clamp(28px,4vw,56px);font-weight:700;letter-spacing:-.02em;text-transform:uppercase;line-height:1;margin-bottom:20px;cursor:pointer}
+
+/* CONTACT PAGE */
+#contact{position:fixed;inset:0;z-index:20;display:none;background:#0a0a0a;color:#f0ede6;font-family:'Space Grotesk',sans-serif;overflow-y:auto}
+#contact.active{display:block}
+.contact-wave-grid{position:absolute;right:0;top:50%;transform:translateY(-50%);z-index:0;opacity:.25;width:60%;height:80vh;pointer-events:none}
+.contact-container{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1.5fr;gap:80px;min-height:100vh;padding:120px 80px 120px 80px;align-items:start}
+.contact-left{max-width:480px}
+.contact-title{font-size:clamp(48px,6vw,80px);font-weight:700;letter-spacing:-.02em;line-height:.9;margin:0 0 24px 0;font-family:'Space Grotesk',sans-serif}
+.contact-barcode{display:flex;gap:4px;margin-bottom:48px}
+.barcode-line{width:3px;height:48px;background:#f0ede6}
+.barcode-line:nth-child(2n){height:32px}
+.barcode-line:nth-child(3n){height:40px}
+.contact-info{margin-bottom:32px}
+.contact-label{font-size:11px;font-weight:700;letter-spacing:.1em;margin:0 0 8px 0;opacity:.6}
+.contact-desc{font-size:13px;line-height:1.8;margin:0 0 6px 0;opacity:.6}
+.contact-right{position:relative;height:80vh}
+.contact-window{position:absolute;width:280px;height:280px;background:rgba(240,237,230,.95);backdrop-filter:blur(20px);border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.3);opacity:0;transform:scale(0.7);transition:transform .3s,opacity .3s}
+.contact-window.show{opacity:1;transform:scale(1);transition:opacity .8s cubic-bezier(.34,1.56,.64,1),transform .8s cubic-bezier(.34,1.56,.64,1)}
+.contact-window.shake{animation:windowShake .5s ease-in-out}
+@keyframes windowShake{0%,100%{transform:translateX(0) rotate(0deg)}10%,30%,50%,70%,90%{transform:translateX(-8px) rotate(-2deg)}20%,40%,60%,80%{transform:translateX(8px) rotate(2deg)}}
+.contact-window:hover{transform:scale(1.02)}
+.contact-win-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(10,10,10,.15);border-bottom:1px solid rgba(10,10,10,.1)}
+.contact-win-title{font-size:12px;font-weight:700;color:#0a0a0a;letter-spacing:.05em}
+.contact-win-close{background:none;border:none;color:#0a0a0a;font-size:18px;cursor:pointer;opacity:.6;transition:opacity .3s;font-family:'Space Grotesk',sans-serif}
+.contact-win-close:hover{opacity:1}
+.contact-win-body{padding:24px;height:calc(100% - 48px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-size:13px;color:#0a0a0a}
+.contact-icon{width:64px;height:64px;object-fit:contain;opacity:.85;transition:opacity .3s ease}
+.contact-icon:hover{opacity:1}
+.contact-text{font-size:15px;font-weight:600;color:#0a0a0a;letter-spacing:.05em;text-align:center;margin:0;opacity:.8}
+.contact-hint{position:fixed;bottom:48px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.3;z-index:10}
+
+.about-name:hover{filter:blur(0px)}
+.about-name.blur-active{animation:blurPulse 0.6s ease-out}
+.about-tagline{font-size:clamp(16px,2vw,22px);font-weight:700;line-height:1.4;margin-bottom:32px;letter-spacing:-.01em;cursor:pointer}
+.about-tagline:hover{filter:blur(0px)}
+.about-tagline.blur-active{animation:blurPulse 0.6s ease-out}
+.about-roles{font-size:11px;letter-spacing:.2em;opacity:0;margin-bottom:36px;text-transform:uppercase;transform:translateY(12px);transition:opacity .7s ease,transform .7s ease;cursor:pointer}
+.about-roles:hover{filter:blur(0px)}
+.about-roles.blur-active{animation:blurPulse 0.6s ease-out}
+
+@keyframes blurPulse{
+  0%{filter:blur(0px)}
+  50%{filter:blur(8px)}
+  100%{filter:blur(0px)}
+}
+
+/* ASCII TEXT EFFECT */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap');
+.ascii-text-container{position:absolute;width:100%;height:100%}
+.ascii-text-container canvas{position:absolute;left:0;top:0;width:100%;height:100%;image-rendering:pixelated}
+.ascii-text-container pre{margin:0;user-select:none;padding:0;line-height:1em;text-align:left;position:absolute;left:0;top:0;background-image:radial-gradient(circle,#ff6188 0%,#fc9867 50%,#ffd866 100%);background-attachment:fixed;-webkit-text-fill-color:transparent;-webkit-background-clip:text;background-clip:text;z-index:9;mix-blend-mode:difference}
+
+/* IMAGE TRAIL EFFECT */
+.poster-trail-content{position:absolute;inset:0;pointer-events:all;display:none}
+.poster-trail-content.active{display:block}
+.content__img{position:absolute;top:0;left:0;width:200px;height:280px;opacity:0;pointer-events:none;will-change:transform,opacity;border-radius:12px;overflow:hidden}
+.content__img-inner{width:100%;height:100%;background-size:cover;background-position:center;background-repeat:no-repeat}
+.poster-trail-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:14px;letter-spacing:.2em;color:rgba(240,237,230,0.6);border:1px solid rgba(240,237,230,0.3);padding:20px 40px;border-radius:4px;opacity:0;transition:opacity .3s ease;pointer-events:none;z-index:5}
+.poster-trail-hint.show{opacity:1}
+
+.about-wave-grid{position:absolute;bottom:8%;left:auto;right:50%;transform:translateX(-80px);width:420px;height:320px;opacity:.18;pointer-events:none}
+.about-birds{position:absolute;bottom:8%;left:auto;right:50%;transform:translateX(-80px);width:420px;height:320px;pointer-events:none;overflow:visible;z-index:1}
+.bird-wrap{position:absolute;width:130px;height:130px}
+.about-birds img{display:block;opacity:0;mix-blend-mode:screen;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease;width:100%;height:100%;object-fit:contain}
+
+/* HOME DECORATIONS */
+.status-badge{position:fixed;top:48px;right:56px;z-index:12;display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.3em;text-transform:uppercase;opacity:.4;pointer-events:none}
+.status-badge::before{content:'';width:6px;height:6px;background:#1a8c3a;border-radius:50%;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.vertical-text{position:fixed;right:80px;top:50%;transform:translateY(-50%) rotate(-90deg);font-size:10px;letter-spacing:.4em;text-transform:uppercase;opacity:.15;pointer-events:none;z-index:11;white-space:nowrap}
+.grid-overlay{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.03;background-image:linear-gradient(rgba(240,237,230,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(240,237,230,.5) 1px,transparent 1px);background-size:60px 60px}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <canvas id="loader-canvas"></canvas>
+  <div class="loader-ui">
+    <div class="loader-label">SYSTEM INIT ////</div>
+    <div class="loader-trough">
+      <div class="loader-fill" id="loader-fill"></div>
+      <div class="loader-ticks">
+        <div class="loader-tick"></div><div class="loader-tick"></div>
+        <div class="loader-tick"></div><div class="loader-tick"></div>
+        <div class="loader-tick"></div><div class="loader-tick"></div>
+        <div class="loader-tick"></div><div class="loader-tick"></div>
+        <div class="loader-tick"></div><div class="loader-tick"></div>
+      </div>
+    </div>
+    <div class="loader-pct" id="loader-pct">000%</div>
+    <div id="loader-complete"></div>
+  </div>
+</div>
+
+<canvas id="reveal-canvas"></canvas>
+<div id="bg-canvas"></div>
+<div id="cur"></div>
+
+<!-- GLOBAL NAV -->
+<nav id="global-nav">
+  <div style="display:flex;align-items:center;gap:20px">
+    <button id="gn-back" onclick="gnBack()">
+      <span class="label-stack">
+        <span class="label-main">← Back</span>
+        <span class="label-hover">← Back</span>
+      </span>
+    </button>
+    <div class="gn-logo">STUDIO<span class="sub">✦ DEPT.</span></div>
+  </div>
+  <div class="gn-links">
+    <a href="#" onclick="gotoPage('intro');return false">
+      <span class="label-stack">
+        <span class="label-main">简介</span>
+        <span class="label-hover">简介</span>
+      </span>
+    </a>
+    <a href="#" onclick="gotoPage('works');return false">
+      <span class="label-stack">
+        <span class="label-main">作品</span>
+        <span class="label-hover">作品</span>
+      </span>
+    </a>
+    <a href="#" onclick="gotoPage('contact');return false">
+      <span class="label-stack">
+        <span class="label-main">联系方式</span>
+        <span class="label-hover">联系方式</span>
+      </span>
+    </a>
+  </div>
+</nav>
+
+<div id="corner-frame"><span class="cf-bl"></span><span class="cf-br"></span><span class="cf-ht"></span><span class="cf-hb"></span><span class="cf-vl"></span><span class="cf-vr"></span></div>
+
+<div class="deco-marquee">
+  <div class="deco-track">
+    <span>Infinite Design</span>
+    <span>Infinite Design</span>
+    <span>Infinite Design</span>
+    <span>Infinite Design</span>
+    <span>Infinite Design</span>
+    <span>Infinite Design</span>
+    <span>Infinite Design</span>
+    <span>Infinite Design</span>
+  </div>
+</div>
+
+<div id="ui">
+
+  <div class="center">
+    <div id="hero-card">
+      <div id="title-wrap">
+        <span class="title-line filled">REBIRTH</span>
+        <span class="title-line outline">BY XIAOKAI</span>
+        <span class="title-line outline">YANG</span>
+      </div>
+      <div class="subtitle">Form dissolves. Structure remains.<br>每一个像素都是一次关于秩序与混沌的对话。</div>
+      <div class="cta-wrap">
+        <div class="cta-btn" onclick="enterInner()"><span>Begin</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <span class="byline">Constructivist Design Studio</span>
+    <span class="year">© 2026</span>
+  </div>
+
+</div>
+
+<div class="v-rule"><div class="v-rule-fill" id="v-fill"></div><div class="v-rule-percent" id="v-percent">0%</div></div>
+
+
+<!-- VEIL -->
+<canvas id="rect-canvas"></canvas>
+<canvas id="trail-canvas"></canvas>
+<div id="veil"></div>
+
+<!-- INNER PAGE -->
+<canvas id="inner-canvas"></canvas>
+<div id="inner">
+  <div class="inner-ui">
+    <div class="inner-title-area">
+      <h2 class="inner-heading">形态<em>消散</em>，结构依旧<em>存在</em></h2>
+    </div>
+    <div class="curved-text-wrap">
+      <svg class="curved-text-svg" viewBox="-100 0 1640 600" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <path id="curve-path" d="M0,120 Q720,520 1440,120" fill="none"/>
+        </defs>
+        <text class="curved-text" font-size="64" font-weight="700" letter-spacing="0.2em" fill="#f0ede6" opacity="1">
+          <textPath id="curve-textpath" href="#curve-path" startOffset="0"></textPath>
+        </text>
+      </svg>
+    </div>
+
+    <!-- ASCII Text Effect (已禁用) -->
+    <div id="ascii-text-container" style="display:none;"></div>
+    <!-- WINDOWS inside inner-ui (position:absolute relative to inner-ui) -->
+    <div class="win" id="win-sys" style="bottom:120px;right:160px;width:140px;animation-delay:0.15s">
+      <div class="win-bar">
+        <span class="win-title">box.3d</span>
+        <button class="win-close" onclick="document.getElementById('win-sys').classList.remove('active')">×</button>
+      </div>
+      <canvas id="win-canvas-box" width="140" height="180" style="display:block;background:#0a0a0a"></canvas>
+    </div>
+    <div class="win" id="win-info" style="bottom:30px;right:40px;width:120px;animation-delay:0.3s">
+      <div class="win-bar">
+        <span class="win-title">sphere.3d</span>
+        <button class="win-close" onclick="document.getElementById('win-info').classList.remove('active')">×</button>
+      </div>
+      <canvas id="win-canvas-sphere" width="120" height="120" style="display:block;background:#0a0a0a"></canvas>
+    </div>
+  </div>
+
+  <!-- ABOUT SECTION -->
+  <div class="about-section">
+    <canvas class="about-wave-grid" id="wave-grid"></canvas>
+    <div class="about-birds">
+      <div class="bird-wrap" style="position:absolute;left:3%;top:2%"><img src="C:/Users/14364/Desktop/素材/鸽子1.png" data-transform="rotate(10deg)"></div>
+      <div class="bird-wrap" style="position:absolute;right:2%;top:8%"><img src="C:/Users/14364/Desktop/素材/鸽子2.png" data-transform="scaleX(-1)"></div>
+      <div class="bird-wrap" style="position:absolute;right:5%;bottom:12%"><img src="C:/Users/14364/Desktop/素材/鸽子3.png" data-transform="none"></div>
+      <div class="bird-wrap" style="position:absolute;left:8%;bottom:5%"><img src="C:/Users/14364/Desktop/素材/鸽子4.png" data-transform="rotate(-15deg)"></div>
+    </div>
+    <div class="about-grid">
+      <div class="about-right">
+        <h3 class="about-name">肖 凯 阳 <em>XIAO KAIYANG</em></h3>
+        <div class="about-roles">
+          <span>视觉设计师</span><span>/</span>
+          <span>创意开发者</span><span>/</span>
+          <span>交互艺术家</span>
+        </div>
+        <p class="about-tagline">用代码书写形式，以结构承载意义<br>每一个像素都是一次关于秩序与混沌的对话</p>
+        <p class="about-para">就读于武汉理工大学视觉传达专业，现专注于生成艺术与交互界面设计的交叉领域。相信最好的设计是那些让人忘记设计本身存在的作品。</p>
+        <p class="about-para">曾参与多个品牌视觉系统的构建，从平面到动态，从屏幕到空间。目前研究如何将算法美学融入日常的视觉语言，让技术成为表达的延伸而非目的。</p>
+      </div>
+      <div class="about-img-box">
+        <img src="照片.png" alt="Portrait" class="about-portrait">
+      </div>
+    </div>
+  </div>
+
+  <div class="about-scroll-hint">↑ Scroll to return</div>
+</div>
+
+<!-- INNER2 PAGE -->
+<div id="inner2">
+  <canvas id="i2-plasma-bg" style="position:fixed;inset:0;z-index:0"></canvas>
+
+  <!-- 海报拖尾效果 -->
+  <div class="poster-trail-content" id="poster-trail-content">
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+    <div class="content__img"><div class="content__img-inner"></div></div>
+  </div>
+  <div class="poster-trail-hint" id="poster-trail-hint">长按鼠标以查看</div>
+
+  <div class="i2-logo-fixed">Designer Xiao Kaiyang<span>Creative Portfolio · 2026</span></div>
+  <canvas id="i2-cross" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:1;opacity:0;transition:opacity .8s ease"></canvas>
+  <div class="i2-work-display" id="i2-work-display" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:1100px;height:620px;display:none;opacity:0;transition:opacity .8s ease;z-index:2;border-radius:18px;overflow:hidden;background:#0a0a0a;border:1px solid rgba(240,237,230,0.15)">
+    <img id="i2-work-img" src="" style="width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s ease">
+    <canvas id="glitch-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;mix-blend-mode:screen;z-index:10;image-rendering:pixelated;image-rendering:-moz-crisp-edges;image-rendering:crisp-edges"></canvas>
+    <div class="glitch-effects" style="position:absolute;inset:0;pointer-events:none;opacity:0;z-index:11"></div>
+  </div>
+
+  <!-- 作品详情弹窗 -->
+  <div id="i2-work-detail" style="position:fixed;left:48px;bottom:48px;width:380px;background:rgba(240,237,230,.95);backdrop-filter:blur(20px);border-radius:12px;padding:32px;z-index:3;display:none;opacity:0;transition:opacity .6s ease,transform .6s cubic-bezier(.16,1,.3,1);transform:scale(0.7);transform-origin:left bottom">
+    <button onclick="closeWorkDetail()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:#0a0a0a;font-size:20px;cursor:pointer;opacity:.5;transition:opacity .3s;font-family:'Space Grotesk',sans-serif">×</button>
+    <h3 style="font-size:28px;font-weight:900;color:#0a0a0a;margin:0 0 16px 0;letter-spacing:-.02em">详细看看？</h3>
+    <p style="font-size:13px;color:rgba(10,10,10,.5);line-height:1.6;margin:0 0 24px 0;font-weight:400">发现更多精彩细节与创作理念<br>深入了解这个作品的设计过程</p>
+    <button id="i2-detail-btn" onclick="viewWorkDetail()" style="background:#0a0a0a;color:#f0ede6;border:none;border-radius:24px;padding:12px 28px;font-size:13px;font-weight:700;letter-spacing:.1em;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:transform .3s,background .3s">
+      <span id="i2-detail-btn-text">浏览详情 →</span>
+    </button>
+  </div>
+
+  <!-- 详情页容器 -->
+  <div id="i2-detail-page" style="position:fixed;inset:0;z-index:100;display:none;background:#0a0a0a;overflow-y:auto;overflow-x:hidden">
+    <div id="i2-detail-content" style="max-width:1200px;margin:0 auto;padding:80px 48px;opacity:0;transition:opacity .8s ease .3s">
+      <!-- 详情内容将动态插入这里 -->
+    </div>
+  </div>
+
+  <!-- 菜单切换按钮 -->
+  <button class="i2-menu-toggle" id="i2-menu-toggle" onclick="toggleWorksMenu()">
+    <span class="i2-toggle-text">
+      <span class="i2-toggle-line">看看都有什么</span>
+      <span class="i2-toggle-line">关闭</span>
+    </span>
+    <span class="i2-toggle-icon">
+      <span class="i2-toggle-icon-h"></span>
+      <span class="i2-toggle-icon-v"></span>
+    </span>
+  </button>
+
+  <!-- 全屏菜单面板 -->
+  <div class="i2-menu-panel" id="i2-menu-panel">
+    <div class="i2-menu-panel-bg"></div>
+    <button class="i2-menu-close" onclick="toggleWorksMenu()">Close ×</button>
+    <div class="i2-menu-inner">
+      <div class="i2-menu-list">
+        <div class="i2-menu-item" data-index="01" onclick="showWork('IP FM.png'); toggleWorksMenu();">
+          <span class="i2-menu-label">视觉形象</span>
+        </div>
+        <div class="i2-menu-item" data-index="02" onclick="showWork('UI FM.png'); toggleWorksMenu();">
+          <span class="i2-menu-label">交互开发</span>
+        </div>
+        <div class="i2-menu-item" data-index="03" onclick="showWork('PP FM.png'); toggleWorksMenu();">
+          <span class="i2-menu-label">品牌策略</span>
+        </div>
+        <div class="i2-menu-item" data-index="04" onclick="showWork('YX FM.png'); toggleWorksMenu();">
+          <span class="i2-menu-label">生成艺术</span>
+        </div>
+        <div class="i2-menu-item" data-index="05" onclick="enterImageTrail(); toggleWorksMenu();">
+          <span class="i2-menu-label">海报创作</span>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT PAGE -->
+<div id="contact">
+  <canvas class="contact-wave-grid" id="contact-grid"></canvas>
+
+  <div class="contact-container">
+    <!-- 左侧内容区 -->
+    <div class="contact-left">
+      <h1 class="contact-title" id="contact-title-text">联系方式_</h1>
+      <div class="contact-barcode">
+        <div class="barcode-line"></div>
+        <div class="barcode-line"></div>
+        <div class="barcode-line"></div>
+        <div class="barcode-line"></div>
+        <div class="barcode-line"></div>
+        <div class="barcode-line"></div>
+        <div class="barcode-line"></div>
+        <div class="barcode-line"></div>
+      </div>
+
+      <div class="contact-info">
+        <p class="contact-desc" data-pressure-text="true">期待与您的合作机会。</p>
+        <p class="contact-desc" data-pressure-text="true">无论是品牌设计、网页开发，还是创意项目，</p>
+        <p class="contact-desc" data-pressure-text="true">都欢迎通过以下方式与我取得联系。</p>
+      </div>
+
+      <!-- ASCII文字效果容器 -->
+      <div id="contact-ascii-container" style="position:relative;width:100%;height:350px;margin-top:40px"></div>
+    </div>
+
+    <!-- 右侧弹窗区 -->
+    <div class="contact-right">
+      <div class="contact-window" id="contact-win-1" style="top:5%;left:3%;z-index:4">
+        <div class="contact-win-bar">
+          <span class="contact-win-title">邮箱.txt</span>
+          <button class="contact-win-close" onclick="toggleContactWindow('contact-win-1')">×</button>
+        </div>
+        <div class="contact-win-body">
+          <img src="email.png" alt="邮箱" class="contact-icon">
+          <p class="contact-text">1436457836@qq.com</p>
+        </div>
+      </div>
+
+      <div class="contact-window" id="contact-win-2" style="top:38%;left:12%;z-index:3">
+        <div class="contact-win-bar">
+          <span class="contact-win-title">微信.txt</span>
+          <button class="contact-win-close" onclick="toggleContactWindow('contact-win-2')">×</button>
+        </div>
+        <div class="contact-win-body">
+          <img src="WEIXIN.png" alt="微信" class="contact-icon">
+          <p class="contact-text">Xiao1145144019</p>
+        </div>
+      </div>
+
+      <div class="contact-window" id="contact-win-3" style="top:8%;right:2%;z-index:2">
+        <div class="contact-win-bar">
+          <span class="contact-win-title">电话.txt</span>
+          <button class="contact-win-close" onclick="toggleContactWindow('contact-win-3')">×</button>
+        </div>
+        <div class="contact-win-body">
+          <img src="phone.png" alt="电话" class="contact-icon">
+          <p class="contact-text">13290334019</p>
+        </div>
+      </div>
+
+      <div class="contact-window" id="contact-win-4" style="bottom:5%;right:20%;z-index:1">
+        <div class="contact-win-bar">
+          <span class="contact-win-title">QQ.txt</span>
+          <button class="contact-win-close" onclick="toggleContactWindow('contact-win-4')">×</button>
+        </div>
+        <div class="contact-win-body">
+          <img src="QQ.png" alt="QQ" class="contact-icon">
+          <p class="contact-text">1436457836</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="contact-hint">← Scroll to return</div>
+</div>
+
+<script>
+// LOADER
+(function(){
+  const FONT = {
+    'C':[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,1],[0,1,1,1,0]],
+    'O':[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+    'M':[[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+    'P':[[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0]],
+    'L':[[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+    'E':[[1,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+    'T':[[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
+  };
+  const ps = 6, gap = 2;
+  const word = 'COMPLETE';
+  const charW = 5*(ps+gap);
+  const totalW = word.length * charW;
+
+  const cnv = document.getElementById('loader-canvas');
+  const ctx = cnv.getContext('2d');
+  let W, H;
+  function resize(){ W = cnv.width = cnv.offsetWidth; H = cnv.height = cnv.offsetHeight; drawHatch(); }
+  window.addEventListener('resize', resize);
+
+  function drawHatch(){
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = 'rgba(240,237,230,0.04)';
+    ctx.lineWidth = 1;
+    for(let x = -H; x < W+H; x += 16){
+      for(let k=0;k<3;k++){
+        ctx.beginPath(); ctx.moveTo(x+k,0); ctx.lineTo(x+k+H,H); ctx.stroke();
+      }
+    }
+  }
+
+  let prog = 0, scanCol = 0, phase = 'loading', raf;
+  const fill = document.getElementById('loader-fill');
+  const pct  = document.getElementById('loader-pct');
+  const comp = document.getElementById('loader-complete');
+
+  function buildCompleteCanvas(){
+    const c = document.createElement('canvas');
+    c.width = totalW; c.height = 7*(ps+gap);
+    c.style.cssText = 'display:block';
+    comp.appendChild(c);
+    return c.getContext('2d');
+  }
+  let compCtx = null;
+
+  function tick(){
+    if(phase === 'loading'){
+      const ease = Math.sin(prog * Math.PI) * 1.6 + 0.4;
+      prog = Math.min(1, prog + 0.005 * ease);
+      fill.style.width = (prog*100)+'%';
+      pct.textContent = String(Math.floor(prog*100)).padStart(3,'0')+'%';
+      if(prog >= 1){
+        phase = 'complete';
+        comp.style.opacity = '1';
+        if(!compCtx) compCtx = buildCompleteCanvas();
+      }
+    }
+    if(phase === 'complete'){
+      scanCol += 4;
+      if(compCtx) drawScan();
+      if(scanCol > totalW + 20){
+        phase = 'done';
+        setTimeout(()=> startReveal(), 150);
+      }
+    }
+    raf = requestAnimationFrame(tick);
+    if(phase === 'done') cancelAnimationFrame(raf);
+  }
+
+  function drawScan(){
+    compCtx.clearRect(0,0,totalW,7*(ps+gap));
+    for(let ci=0;ci<word.length;ci++){
+      const ch = FONT[word[ci]]; if(!ch) continue;
+      const ox = ci*charW;
+      for(let row=0;row<7;row++){
+        for(let col=0;col<5;col++){
+          if(!ch[row][col]) continue;
+          const px = ox + col*(ps+gap);
+          const py = row*(ps+gap);
+          const age = scanCol - px;
+          if(age < 0) continue;
+          const bright = Math.min(240, age*12 + 160);
+          compCtx.fillStyle = `rgb(${bright},${Math.round(bright*0.988)},${Math.round(bright*0.976)})`;
+          compCtx.fillRect(px,py,ps,ps);
+          compCtx.fillStyle = 'rgba(255,255,255,0.2)';
+          compCtx.fillRect(px,py,2,2);
+        }
+      }
+    }
+  }
+
+  window.addEventListener('load', ()=>{ resize(); tick(); });
+})();
+
+function startReveal() {
+  const rc = document.getElementById('reveal-canvas');
+  rc.style.display = 'block';
+  rc.width = window.innerWidth;
+  rc.height = window.innerHeight;
+  const ctx = rc.getContext('2d');
+  const cx = rc.width / 2, cy = rc.height / 2;
+  const maxR = Math.sqrt(cx*cx + cy*cy) * 1.05;
+  let t = 0; // 0→1
+  const loader = document.getElementById('loader');
+  loader.style.display = 'none';
+
+  function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+
+  function frame() {
+    t = Math.min(1, t + 0.004);
+    const r = easeInOutCubic(t) * maxR;
+    const hw = r * (rc.width / maxR);
+    const hh = r * (rc.height / maxR);
+    const x = cx - hw, y = cy - hh, w = hw*2, h = hh*2;
+
+    ctx.clearRect(0, 0, rc.width, rc.height);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, rc.width, rc.height);
+    ctx.clearRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(240,237,230,0.85)';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(x, y, w, h);
+
+    // 同步首页文字缩放
+    const ui = document.getElementById('ui');
+    const s = 0.85 + 0.15 * easeInOutCubic(t);
+    ui.style.transform = `scale(${s})`;
+    ui.style.opacity = easeInOutCubic(t);
+
+    if (t < 1) requestAnimationFrame(frame);
+    else { rc.style.display = 'none'; ui.style.transform = 'scale(1)'; ui.style.opacity = '1'; }
+  }
+  requestAnimationFrame(frame);
+}
+
+// CURSOR
+const cur = document.getElementById('cur');
+let cx=0,cy=0;
+document.addEventListener('mousemove',e=>{
+  cx=e.clientX;cy=e.clientY;
+  cur.style.left=cx+'px';cur.style.top=cy+'px';
+});
+document.querySelectorAll('a,.cta-btn,.letter').forEach(el=>{
+  el.addEventListener('mouseenter',()=>cur.classList.add('hover'));
+  el.addEventListener('mouseleave',()=>cur.classList.remove('hover'));
+});
+
+// BACKGROUND — LiquidEther fluid simulation
+(function(){
+  const container = document.getElementById('bg-canvas');
+  const THREE = window.THREE;
+  const colors = ['#1e3a8a','#2563eb','#1d4ed8'];
+
+  // palette texture
+  function makePaletteTex(stops){
+    const data = new Uint8Array(stops.length*4);
+    stops.forEach((s,i)=>{
+      const c=new THREE.Color(s);
+      data[i*4]=Math.round(c.r*255);data[i*4+1]=Math.round(c.g*255);
+      data[i*4+2]=Math.round(c.b*255);data[i*4+3]=255;
+    });
+    const t=new THREE.DataTexture(data,stops.length,1,THREE.RGBAFormat);
+    t.magFilter=t.minFilter=THREE.LinearFilter;
+    t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;
+    t.generateMipmaps=false;t.needsUpdate=true;return t;
+  }
+  const paletteTex=makePaletteTex(colors);
+
+  // renderer
+  const renderer=new THREE.WebGLRenderer({antialias:false,alpha:true,powerPreference:'high-performance'});
+  renderer.autoClear=false;
+  renderer.setClearColor(0x000000,0);
+  renderer.setPixelRatio(1);
+  const canvas=renderer.domElement;
+  canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;display:block';
+  container.appendChild(canvas);
+
+  let W=container.offsetWidth||window.innerWidth;
+  let H=container.offsetHeight||window.innerHeight;
+  renderer.setSize(W,H,false);
+
+  const resolution=0.25,dt=0.014,mouseForce=20,cursorSize=100;
+  let fboW=Math.max(1,Math.round(resolution*W));
+  let fboH=Math.max(1,Math.round(resolution*H));
+  let cellScale=new THREE.Vector2(1/fboW,1/fboH);
+
+  const isIOS=/(iPad|iPhone|iPod)/i.test(navigator.userAgent);
+  const fboType=isIOS?THREE.HalfFloatType:THREE.FloatType;
+  function makeFBO(){
+    return new THREE.WebGLRenderTarget(fboW,fboH,{
+      type:fboType,depthBuffer:false,stencilBuffer:false,
+      minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,
+      wrapS:THREE.ClampToEdgeWrapping,wrapT:THREE.ClampToEdgeWrapping
+    });
+  }
+
+  const fbos={vel0:makeFBO(),vel1:makeFBO(),velV0:makeFBO(),velV1:makeFBO(),
+    div:makeFBO(),p0:makeFBO(),p1:makeFBO()};
+
+  // shaders
+  const faceVert=`attribute vec3 position;uniform vec2 boundarySpace;varying vec2 uv;precision highp float;
+void main(){vec3 p=position;vec2 sc=1.0-boundarySpace*2.0;p.xy*=sc;uv=vec2(0.5)+p.xy*0.5;gl_Position=vec4(p,1.0);}`;
+  const mouseVert=`precision highp float;attribute vec3 position;attribute vec2 uv;
+uniform vec2 center;uniform vec2 scale;uniform vec2 px;varying vec2 vUv;
+void main(){vec2 pos=position.xy*scale*2.0*px+center;vUv=uv;gl_Position=vec4(pos,0.0,1.0);}`;
+
+  const advFrag=`precision highp float;uniform sampler2D velocity;uniform float dt;uniform bool isBFECC;
+uniform vec2 fboSize;uniform vec2 px;varying vec2 uv;
+void main(){vec2 ratio=max(fboSize.x,fboSize.y)/fboSize;
+if(!isBFECC){vec2 v=texture2D(velocity,uv).xy;gl_FragColor=vec4(texture2D(velocity,uv-v*dt*ratio).xy,0,0);}
+else{vec2 v0=texture2D(velocity,uv).xy;vec2 s0=uv-v0*dt*ratio;vec2 v1=texture2D(velocity,s0).xy;
+vec2 s2=s0+v1*dt*ratio;vec2 err=s2-uv;vec2 s3=uv-err/2.0;vec2 v2=texture2D(velocity,s3).xy;
+gl_FragColor=vec4(texture2D(velocity,s3-v2*dt*ratio).xy,0,0);}}`;
+  const forceFrag=`precision highp float;uniform vec2 force;varying vec2 vUv;
+void main(){vec2 c=(vUv-0.5)*2.0;float d=1.0-min(length(c),1.0);d*=d;gl_FragColor=vec4(force*d,0,1);}`;
+  const divFrag=`precision highp float;uniform sampler2D velocity;uniform float dt;uniform vec2 px;varying vec2 uv;
+void main(){float x0=texture2D(velocity,uv-vec2(px.x,0)).x;float x1=texture2D(velocity,uv+vec2(px.x,0)).x;
+float y0=texture2D(velocity,uv-vec2(0,px.y)).y;float y1=texture2D(velocity,uv+vec2(0,px.y)).y;
+gl_FragColor=vec4((x1-x0+y1-y0)/2.0/dt);}`;
+  const poisFrag=`precision highp float;uniform sampler2D pressure;uniform sampler2D divergence;uniform vec2 px;varying vec2 uv;
+void main(){float p0=texture2D(pressure,uv+vec2(px.x*2.0,0)).r;float p1=texture2D(pressure,uv-vec2(px.x*2.0,0)).r;
+float p2=texture2D(pressure,uv+vec2(0,px.y*2.0)).r;float p3=texture2D(pressure,uv-vec2(0,px.y*2.0)).r;
+float d=texture2D(divergence,uv).r;gl_FragColor=vec4((p0+p1+p2+p3)/4.0-d);}`;
+  const presFrag=`precision highp float;uniform sampler2D pressure;uniform sampler2D velocity;uniform vec2 px;uniform float dt;varying vec2 uv;
+void main(){float p0=texture2D(pressure,uv+vec2(px.x,0)).r;float p1=texture2D(pressure,uv-vec2(px.x,0)).r;
+float p2=texture2D(pressure,uv+vec2(0,px.y)).r;float p3=texture2D(pressure,uv-vec2(0,px.y)).r;
+vec2 v=texture2D(velocity,uv).xy;v-=vec2(p0-p1,p2-p3)*0.5*dt;gl_FragColor=vec4(v,0,1);}`;
+  const colorFrag=`precision highp float;uniform sampler2D velocity;uniform sampler2D palette;uniform vec4 bgColor;varying vec2 uv;
+void main(){vec2 v=texture2D(velocity,uv).xy;float l=clamp(length(v),0.0,1.0);
+vec3 c=texture2D(palette,vec2(l,0.5)).rgb;gl_FragColor=vec4(mix(bgColor.rgb,c,l),mix(bgColor.a,0.8,l));}`;
+
+  function makePass(vert,frag,uniforms){
+    const mat=new THREE.RawShaderMaterial({vertexShader:vert,fragmentShader:frag,uniforms});
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2,2),mat);
+    const scene=new THREE.Scene();scene.add(mesh);
+    const cam=new THREE.Camera();
+    return{mat,scene,cam,uniforms:mat.uniforms,
+      render(target){renderer.setRenderTarget(target||null);renderer.render(scene,cam);renderer.setRenderTarget(null);}};
+  }
+
+  const zero2=new THREE.Vector2(0,0);
+  const fboSizeVec=new THREE.Vector2(fboW,fboH);
+
+  const advPass=makePass(faceVert,advFrag,{
+    boundarySpace:{value:cellScale},px:{value:cellScale},fboSize:{value:fboSizeVec},
+    velocity:{value:fbos.vel0.texture},dt:{value:dt},isBFECC:{value:true}});
+
+  // force pass uses mouse_vert with uv attribute
+  const forceGeo=new THREE.PlaneGeometry(1,1);
+  const forceMat=new THREE.RawShaderMaterial({vertexShader:mouseVert,fragmentShader:forceFrag,
+    blending:THREE.AdditiveBlending,depthWrite:false,
+    uniforms:{px:{value:cellScale},force:{value:new THREE.Vector2()},
+      center:{value:new THREE.Vector2()},scale:{value:new THREE.Vector2(cursorSize,cursorSize)}}});
+  const forceScene=new THREE.Scene();forceScene.add(new THREE.Mesh(forceGeo,forceMat));
+  const forceCam=new THREE.Camera();
+
+  const divPass=makePass(faceVert,divFrag,{
+    boundarySpace:{value:zero2},velocity:{value:fbos.vel1.texture},px:{value:cellScale},dt:{value:dt}});
+  const poisPass=makePass(faceVert,poisFrag,{
+    boundarySpace:{value:zero2},pressure:{value:fbos.p0.texture},divergence:{value:fbos.div.texture},px:{value:cellScale}});
+  const presPass=makePass(faceVert,presFrag,{
+    boundarySpace:{value:zero2},pressure:{value:fbos.p0.texture},velocity:{value:fbos.vel1.texture},
+    px:{value:cellScale},dt:{value:dt}});
+  const colorPass=makePass(faceVert,colorFrag,{
+    boundarySpace:{value:zero2},velocity:{value:fbos.vel0.texture},
+    palette:{value:paletteTex},bgColor:{value:new THREE.Vector4(0,0,0,0)}});
+
+  // mouse
+  const coords=new THREE.Vector2(0,0);
+  const coordsOld=new THREE.Vector2(0,0);
+  const diff=new THREE.Vector2(0,0);
+  let mouseTimer=null;
+  let mouseMoved=false;
+
+  function setCoords(x,y){
+    const rect=container.getBoundingClientRect();
+    if(!rect.width||!rect.height)return;
+    coords.set((x-rect.left)/rect.width*2-1,-((y-rect.top)/rect.height*2-1));
+    mouseMoved=true;
+    clearTimeout(mouseTimer);mouseTimer=setTimeout(()=>{mouseMoved=false;},100);
+  }
+  window.addEventListener('mousemove',e=>{
+    setCoords(e.clientX,e.clientY);
+    lastUserTime=performance.now();
+  });
+  window.addEventListener('touchmove',e=>{if(e.touches.length===1)setCoords(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  window.addEventListener('touchstart',()=>{lastUserTime=performance.now();},{passive:true});
+
+  // auto demo
+  const autoCurrent=new THREE.Vector2(0,0);
+  const autoTarget=new THREE.Vector2();
+  let autoLastTime=performance.now();
+  let lastUserTime=0;
+  function pickTarget(){autoTarget.set((Math.random()*2-1)*0.8,(Math.random()*2-1)*0.8);}
+  pickTarget();
+
+  function updateAuto(){
+    const now=performance.now();
+    if(now-lastUserTime<1000){return;}
+    const dtA=Math.min((now-autoLastTime)/1000,0.1);autoLastTime=now;
+    const dir=new THREE.Vector2().subVectors(autoTarget,autoCurrent);
+    const dist=dir.length();
+    if(dist<0.01){pickTarget();return;}
+    dir.normalize();
+    const step=0.12*dtA;
+    autoCurrent.addScaledVector(dir,Math.min(step,dist));
+    coords.copy(autoCurrent);
+    mouseMoved=true;
+  }
+
+  function simulate(){
+    // advection
+    advPass.uniforms.velocity.value=fbos.vel0.texture;
+    advPass.uniforms.isBFECC.value=true;
+    advPass.render(fbos.vel1);
+
+    // external force
+    diff.subVectors(coords,coordsOld);
+    coordsOld.copy(coords);
+    const fu=forceMat.uniforms;
+    fu.force.value.set(diff.x/2*mouseForce,diff.y/2*mouseForce);
+    const csX=cursorSize*cellScale.x,csY=cursorSize*cellScale.y;
+    fu.center.value.set(
+      Math.min(Math.max(coords.x,-1+csX+cellScale.x*2),1-csX-cellScale.x*2),
+      Math.min(Math.max(coords.y,-1+csY+cellScale.y*2),1-csY-cellScale.y*2));
+    renderer.setRenderTarget(fbos.vel1);renderer.render(forceScene,forceCam);renderer.setRenderTarget(null);
+
+    // divergence
+    divPass.uniforms.velocity.value=fbos.vel1.texture;
+    divPass.render(fbos.div);
+
+    // poisson iterations
+    let pIn=fbos.p0,pOut=fbos.p1;
+    for(let i=0;i<16;i++){
+      poisPass.uniforms.pressure.value=pIn.texture;
+      poisPass.render(pOut);
+      [pIn,pOut]=[pOut,pIn];
+    }
+
+    // pressure projection
+    presPass.uniforms.velocity.value=fbos.vel1.texture;
+    presPass.uniforms.pressure.value=pIn.texture;
+    presPass.render(fbos.vel0);
+
+    // render to screen
+    colorPass.uniforms.velocity.value=fbos.vel0.texture;
+    colorPass.render(null);
+  }
+
+  let rafId;
+  let lastFrameTime=0;
+  const targetFPS=60;
+  const frameInterval=1000/targetFPS;
+  let isRunning = false;
+
+  function loop(currentTime){
+    if(!isRunning) return;
+    rafId=requestAnimationFrame(loop);
+    const elapsed=currentTime-lastFrameTime;
+    if(elapsed<frameInterval)return;
+    lastFrameTime=currentTime-elapsed%frameInterval;
+
+    updateAuto();
+    simulate();
+  }
+
+  function start(){
+    if(isRunning) return;
+    isRunning = true;
+    loop(0);
+  }
+
+  function stop(){
+    isRunning = false;
+    if(rafId) cancelAnimationFrame(rafId);
+  }
+
+  // 暴露控制函数
+  window.bgFluid = { start, stop };
+  start();
+
+  // resize
+  window.addEventListener('resize',()=>{
+    W=container.offsetWidth||window.innerWidth;
+    H=container.offsetHeight||window.innerHeight;
+    renderer.setSize(W,H,false);
+    fboW=Math.max(1,Math.round(resolution*W));
+    fboH=Math.max(1,Math.round(resolution*H));
+    cellScale.set(1/fboW,1/fboH);
+    fboSizeVec.set(fboW,fboH);
+    for(const k in fbos)fbos[k].setSize(fboW,fboH);
+  });
+})();
+
+// Scroll progress on v-rule (mouse Y) with smooth lerp
+(function(){
+  let currentPercent = 0;
+  let targetPercent = 0;
+  let lastUpdateTime=0;
+
+  document.addEventListener('mousemove',e=>{
+    targetPercent = (e.clientY/window.innerHeight*100);
+  });
+
+  function animate(time){
+    requestAnimationFrame(animate);
+    if(time-lastUpdateTime<16)return;
+    lastUpdateTime=time;
+
+    currentPercent += (targetPercent - currentPercent) * 0.18;
+    if(Math.abs(targetPercent-currentPercent)<0.1){
+      currentPercent=targetPercent;
+    }
+    document.getElementById('v-fill').style.height=currentPercent+'%';
+    document.getElementById('v-percent').textContent=Math.round(currentPercent)+'%';
+  }
+  animate(0);
+})();
+
+// RECT TRANSITION
+function rectTransition(onMid, onDone) {
+  const rc = document.getElementById('rect-canvas');
+  rc.width = window.innerWidth; rc.height = window.innerHeight;
+  rc.style.display = 'block';
+  const ctx = rc.getContext('2d');
+  const W = rc.width, H = rc.height;
+  let phase = 'shrink', t = 0, midDone = false;
+
+  function ease(x){ return x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2; }
+
+  function drawRect(ix, iy) {
+    // fill outside
+    ctx.fillStyle='#0a0a0a';
+    ctx.fillRect(0,0,W,iy);
+    ctx.fillRect(0,H-iy,W,iy);
+    ctx.fillRect(0,iy,ix,H-iy*2);
+    ctx.fillRect(W-ix,iy,ix,H-iy*2);
+    // stroke
+    ctx.strokeStyle='rgba(240,237,230,.85)';
+    ctx.lineWidth=1.5;
+    ctx.strokeRect(ix, iy, W-ix*2, H-iy*2);
+  }
+
+  function frame(){
+    ctx.clearRect(0,0,W,H);
+    if(phase==='shrink'){
+      t = Math.min(1, t+0.008);
+      const e = ease(t);
+      const ix = 40 + (W/2-40)*e;
+      const iy = 40 + (H/2-40)*e;
+      drawRect(ix, iy);
+      if(t>=1){
+        phase='expand'; t=0;
+        if(!midDone){ midDone=true; onMid(); }
+      }
+    } else {
+      t = Math.min(1, t+0.007);
+      const e = ease(t);
+      // expand from center outward past screen
+      const ix = (W/2)*(1-e);
+      const iy = (H/2)*(1-e);
+      ctx.fillStyle='#0a0a0a';
+      ctx.fillRect(0,0,W,H);
+      ctx.strokeStyle=`rgba(240,237,230,${(1-e).toFixed(2)})`;
+      ctx.lineWidth=1.5;
+      ctx.strokeRect(ix, iy, W-ix*2, H-iy*2);
+      if(t>=1){ rc.style.display='none'; onDone(); return; }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+// PAGE TRANSITION
+let currentPage = 'home';
+let isTransitioning = false;
+
+function showGlobalNav(showBack) {
+  const nav = document.getElementById('global-nav');
+  const back = document.getElementById('gn-back');
+  if (showBack === null) { nav.classList.remove('visible'); return; }
+  nav.classList.add('visible');
+  back.classList.toggle('visible', showBack);
+}
+
+function gnBack() {
+  if (currentPage === 'inner') exitInner();
+  else if (currentPage === 'inner2') exitInner2();
+  else if (currentPage === 'contact') exitContact();
+}
+
+function gotoPage(page) {
+  if (isTransitioning) return;
+  if (page === 'intro') {
+    if (currentPage === 'inner') return; // already there
+    if (currentPage === 'contact') {
+      // 从contact到intro，参考inner2到inner的模式
+      isTransitioning = true;
+      const veil = document.getElementById('veil');
+      veil.classList.add('show');
+      // 停止联系页网格动画
+      if(window.contactGrid) window.contactGrid.stop();
+      setTimeout(() => {
+        const contact = document.getElementById('contact');
+        contact.classList.remove('active');
+        contact.style.display = 'none';
+        currentPage = 'home';
+        showGlobalNav(null);
+        isTransitioning = false;
+        setTimeout(() => veil.classList.remove('show'), 100);
+        setTimeout(() => {
+          // 进入inner
+          if (isTransitioning) return;
+          isTransitioning = true;
+          currentPage = 'inner';
+          showGlobalNav(true);
+          const inner = document.getElementById('inner');
+          inner.style.display = 'flex';
+          inner.classList.add('active');
+          inner.scrollTop = 0;
+          document.getElementById('ui').style.display = 'none';
+          document.getElementById('bg-canvas').style.display = 'none';
+          document.getElementById('corner-frame').style.display = 'none';
+          document.querySelector('.v-rule').style.display = 'none';
+          startInnerParticles();
+          showWins();
+          setTimeout(()=>triggerInnerFadeIn(), 200);
+          setTimeout(()=>setupAboutObserver(), 300);
+          isTransitioning = false;
+        }, 200);
+      }, 600);
+      return;
+    }
+    if (currentPage === 'inner2') {
+      // exit inner2 then enter inner — veil fade only
+      isTransitioning = true;
+      const veil = document.getElementById('veil');
+      veil.classList.add('show');
+      setTimeout(() => {
+        const i2Menu = document.getElementById('i2-menu-toggle');
+        if(i2Menu) i2Menu.classList.remove('visible');
+        document.getElementById('inner2').classList.remove('active');
+        document.getElementById('inner2').style.display = 'none';
+        currentPage = 'home';
+        isTransitioning = false;
+        setTimeout(() => veil.classList.remove('show'), 100);
+        setTimeout(() => {
+          // enter inner directly without rectTransition
+          if (isTransitioning) return;
+          isTransitioning = true;
+          currentPage = 'inner';
+          showGlobalNav(true);
+          const inner = document.getElementById('inner');
+          inner.style.display = 'flex';
+          inner.classList.add('active');
+          inner.scrollTop = 0;
+          document.getElementById('ui').style.display = 'none';
+          document.getElementById('bg-canvas').style.display = 'none';
+          document.getElementById('corner-frame').style.display = 'none';
+          document.querySelector('.v-rule').style.display = 'none';
+          startInnerParticles();
+          showWins();
+          setTimeout(()=>triggerInnerFadeIn(), 200);
+          setTimeout(()=>setupAboutObserver(), 300);
+          isTransitioning = false;
+        }, 200);
+      }, 600);
+    } else {
+      enterInner();
+    }
+  } else if (page === 'works') {
+    if (currentPage === 'inner2') return;
+    if (currentPage === 'contact') {
+      // 从contact到works，参考inner到inner2的模式
+      isTransitioning = true;
+      const veil = document.getElementById('veil');
+      veil.classList.add('show');
+      // 停止联系页网格动画
+      if(window.contactGrid) window.contactGrid.stop();
+      setTimeout(() => {
+        const contact = document.getElementById('contact');
+        contact.classList.remove('active');
+        contact.style.display = 'none';
+        currentPage = 'home';
+        showGlobalNav(null);
+        isTransitioning = false;
+        setTimeout(() => veil.classList.remove('show'), 100);
+        setTimeout(() => enterInner2(), 200);
+      }, 600);
+      return;
+    }
+    if (currentPage === 'inner') {
+      isTransitioning = true;
+      const veil = document.getElementById('veil');
+      veil.classList.add('show');
+      setTimeout(() => {
+        const inner = document.getElementById('inner');
+        inner.classList.remove('active');
+        inner.style.display = 'none';
+        inner.scrollTop = 0;
+        stopCurvedText();
+        stopAsciiText();
+        if (innerP5) { innerP5.dispose(); innerP5 = null; }
+        currentPage = 'home';
+        isTransitioning = false;
+        setTimeout(() => veil.classList.remove('show'), 100);
+        setTimeout(() => enterInner2(), 200);
+      }, 600);
+    } else {
+      enterInner2();
+    }
+  } else if (page === 'contact') {
+    if (currentPage === 'contact') return;
+    if (currentPage === 'inner') {
+      // 从简介页切换到联系页
+      isTransitioning = true;
+      const veil = document.getElementById('veil');
+      veil.classList.add('show');
+      setTimeout(() => {
+        const inner = document.getElementById('inner');
+        inner.classList.remove('active');
+        inner.style.display = 'none';
+        inner.scrollTop = 0;
+        stopCurvedText();
+        stopAsciiText();
+        if (innerP5) { innerP5.dispose(); innerP5 = null; }
+        currentPage = 'home';
+        isTransitioning = false;
+        setTimeout(() => veil.classList.remove('show'), 100);
+        setTimeout(() => enterContact(), 200);
+      }, 600);
+    } else if (currentPage === 'inner2') {
+      // 从作品页切换到联系页
+      isTransitioning = true;
+      const veil = document.getElementById('veil');
+      veil.classList.add('show');
+      setTimeout(() => {
+        const i2Menu = document.getElementById('i2-menu-toggle');
+        if(i2Menu) i2Menu.classList.remove('visible');
+        document.getElementById('inner2').classList.remove('active');
+        document.getElementById('inner2').style.display = 'none';
+        if(window.i2PlasmaBg) window.i2PlasmaBg.stop();
+        currentPage = 'home';
+        isTransitioning = false;
+        setTimeout(() => veil.classList.remove('show'), 100);
+        setTimeout(() => enterContact(), 200);
+      }, 600);
+    } else {
+      enterContact();
+    }
+  }
+}
+
+function enterInner() {
+  if (isTransitioning) return;
+  isTransitioning = true;
+  rectTransition(
+    () => {
+      // mid: switch content
+      currentPage = 'inner';
+      showGlobalNav(true);
+      const inner = document.getElementById('inner');
+      inner.style.display = 'flex';
+      inner.classList.add('active');
+      inner.scrollTop = 0;
+      document.getElementById('inner-canvas').style.display = 'block';
+      document.getElementById('ui').style.display = 'none';
+      document.getElementById('bg-canvas').style.display = 'none';
+      document.getElementById('corner-frame').style.display = 'none';
+      const cornerLabel = document.getElementById('corner-label');
+      if(cornerLabel) cornerLabel.style.display = 'none';
+      document.getElementById('barcode') && (document.getElementById('barcode').style.display='none');
+      document.querySelector('.v-rule').style.display = 'none';
+      document.querySelector('.deco-marquee').style.display = 'none';
+      startInnerParticles();
+      setTimeout(()=>{
+        initCurvedText();
+      }, 100);
+    },
+    () => {
+      isTransitioning = false;
+      setTimeout(()=>triggerInnerFadeIn(), 100);
+      setTimeout(()=>showWins(), 800);
+      setTimeout(()=>setupAboutObserver(), 1000);
+    }
+  );
+}
+
+function exitInner() {
+  if (isTransitioning) return;
+  isTransitioning = true;
+  const veil = document.getElementById('veil');
+  veil.classList.add('show');
+  setTimeout(() => {
+    currentPage = 'home';
+    showGlobalNav(null);
+    const inner = document.getElementById('inner');
+    inner.style.display = 'none';
+    inner.scrollTop = 0;
+    document.getElementById('ui').style.display = '';
+    const ui = document.getElementById('ui');
+    ui.style.transform = 'scale(1)';
+    ui.style.opacity = '1';
+    document.getElementById('inner-canvas').style.display = 'none';
+
+    // 恢复首页流体背景动画
+    if(window.bgFluid) window.bgFluid.start();
+    const heroCard = document.getElementById('hero-card');
+    if(heroCard){
+      heroCard.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+      heroCard.querySelectorAll('#hero-card > *').forEach(el => {
+        el.style.transform = 'translateZ(0)';
+      });
+    }
+    document.getElementById('bg-canvas').style.display = '';
+    document.getElementById('corner-frame').style.display = '';
+    const cornerLabel = document.getElementById('corner-label');
+    if(cornerLabel) cornerLabel.style.display = '';
+    document.querySelector('.v-rule').style.display = '';
+    document.querySelector('.deco-marquee').style.display = '';
+    stopCurvedText();
+    hideWins();
+    setTimeout(()=>{
+      if(window.restartShuffle) window.restartShuffle();
+    }, 200);
+    document.querySelector('.inner-title-area').classList.remove('inner-fade-in');
+    const body = document.querySelector('.inner-body');
+    if (body) { body.style.opacity='0'; body.style.transform='translateY(20px)'; }
+    const h = document.querySelector('.inner-heading');
+    if (h) {
+      delete h.dataset.split;
+      h.querySelectorAll('.ch').forEach(s=>{ s.style.opacity='0'; s.style.transform='translateY(20px)'; s.style.transitionDelay='0s'; });
+    }
+    ['.about-name','.about-tagline'].forEach(sel=>{
+      const el=document.querySelector(sel);
+      const dy = sel==='.about-name' ? '16px' : '12px';
+      if(el) { delete el.dataset.split; el.querySelectorAll('.ch').forEach(s=>{ s.style.opacity='0'; s.style.transform=`translateY(${dy})`; s.style.transitionDelay='0s'; }); }
+    });
+    document.querySelectorAll('.about-birds img').forEach(img=>{ img.style.opacity='0'; img.style.transform='translateY(16px)'; img.style.transitionDelay='0s'; });
+    const roles = document.querySelector('.about-roles');
+    if(roles){ roles.style.opacity='0'; roles.style.transform='translateY(12px)'; roles.style.transitionDelay='0s'; }
+    document.querySelectorAll('.about-para').forEach(p=>{ p.style.opacity='0'; p.style.transform='translateY(12px)'; p.style.transitionDelay='0s'; });
+    if (innerP5) { innerP5.dispose(); innerP5 = null; }
+    setTimeout(() => { veil.classList.remove('show'); isTransitioning = false; }, 100);
+  }, 600);
+}
+
+// INNER PAGE — Saturn particles (original colors, full intensity)
+let innerP5 = null;
+// FLOATING WINDOWS
+function splitAndAnimate(el, baseDelay, step) {
+  if (el.dataset.split) {
+    el.querySelectorAll('.ch').forEach((s,i)=>{
+      s.style.transitionDelay=(baseDelay+i*step)+'s';
+      s.style.opacity='1'; s.style.transform='translateY(0)';
+    }); return;
+  }
+  el.dataset.split='1';
+  function wrapNode(node){
+    if(node.nodeType===3){
+      const frag=document.createDocumentFragment();
+      [...node.textContent].forEach(ch=>{
+        if(ch==='\n'||ch===' '){frag.appendChild(document.createTextNode(ch));return;}
+        const s=document.createElement('span');
+        s.className='ch'; s.textContent=ch; frag.appendChild(s);
+      }); node.replaceWith(frag);
+    } else if(node.nodeName!=='BR'){[...node.childNodes].forEach(wrapNode);}
+  }
+  [...el.childNodes].forEach(wrapNode);
+  el.querySelectorAll('.ch').forEach((s,i)=>{
+    s.style.transitionDelay=(baseDelay+i*step)+'s';
+    s.style.opacity='1'; s.style.transform='translateY(0)';
+  });
+}
+
+let aboutObserver = null;
+
+function setupAboutObserver() {
+  // 断开旧的观察器
+  if(aboutObserver) {
+    aboutObserver.disconnect();
+  }
+
+  const name = document.querySelector('.about-name');
+  const tagline = document.querySelector('.about-tagline');
+  const roles = document.querySelector('.about-roles');
+  const paras = document.querySelectorAll('.about-para');
+  const birds = document.querySelectorAll('.about-birds img');
+  const imgBox = document.querySelector('.about-img-box');
+  const portrait = imgBox?.querySelector('.about-portrait');
+
+  // 重置所有元素状态
+  if(name) {
+    name.style.cssText = '';
+    name.querySelectorAll('.ch').forEach(s => s.style.cssText = '');
+  }
+  if(tagline) {
+    tagline.style.cssText = '';
+    tagline.querySelectorAll('.ch').forEach(s => s.style.cssText = '');
+  }
+  if(roles) roles.style.cssText = '';
+  paras.forEach(p => p.style.cssText = '');
+  birds.forEach(img => img.style.cssText = '');
+
+  // 重置照片状态
+  if(imgBox) {
+    imgBox.style.removeProperty('--animated');
+    imgBox.style.removeProperty('--layer-2');
+    imgBox.style.removeProperty('--layer-1');
+  }
+  if(portrait) {
+    portrait.style.opacity='0';
+    portrait.style.transform='translateX(120%)';
+  }
+
+  aboutObserver = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(!e.isIntersecting) return;
+      if(e.target===name) splitAndAnimate(name, 0.05, 0.055);
+      if(e.target===tagline) splitAndAnimate(tagline, 0.05, 0.04);
+      if(e.target===roles){
+        roles.style.transitionDelay='.1s';
+        roles.style.opacity='.35'; roles.style.transform='translateY(0)';
+      }
+      if(e.target.classList.contains('about-para')){
+        const i=[...paras].indexOf(e.target);
+        e.target.style.transitionDelay=(0.15+i*0.12)+'s';
+        e.target.style.opacity='.45'; e.target.style.transform='translateY(0)';
+      }
+      if(e.target.classList.contains('about-birds')){
+        requestAnimationFrame(()=>{
+          birds.forEach((img,i)=>{
+            const t = img.dataset.transform||'none';
+            img.style.transitionDelay = (0.05 + i*0.18)+'s';
+            img.style.opacity='.75';
+            img.style.transform = t==='none' ? 'translateY(0)' : t;
+          });
+        });
+      }
+      // 照片动画只在首次进入视口时触发一次
+      if(e.target.classList.contains('about-img-box')){
+        const box = e.target;
+        const img = box.querySelector('.about-portrait');
+        if(box.style.getPropertyValue('--animated')) return;
+        requestAnimationFrame(()=>{
+          box.style.setProperty('--animated', '1');
+          setTimeout(()=>{ box.style.setProperty('--layer-2', '1'); }, 50);
+          setTimeout(()=>{ box.style.setProperty('--layer-1', '1'); }, 100);
+          setTimeout(()=>{ if(img){ img.style.opacity='1'; img.style.transform='translateX(0)'; } }, 150);
+        });
+      }
+    });
+  },{threshold:0.3});
+
+  if(name) aboutObserver.observe(name);
+  if(tagline) aboutObserver.observe(tagline);
+  if(roles) aboutObserver.observe(roles);
+  paras.forEach(p=>aboutObserver.observe(p));
+  const birdsWrap = document.querySelector('.about-birds');
+  if(birdsWrap) aboutObserver.observe(birdsWrap);
+  if(imgBox) aboutObserver.observe(imgBox);
+
+  // 添加Blur Text点击效果
+  [name, tagline, roles, ...paras].forEach(el => {
+    if(!el) return;
+    el.addEventListener('click', function() {
+      this.classList.remove('blur-active');
+      void this.offsetHeight;
+      this.classList.add('blur-active');
+      setTimeout(() => this.classList.remove('blur-active'), 600);
+    });
+  });
+}
+
+function triggerInnerFadeIn() {
+  const area = document.querySelector('.inner-title-area');
+  const h = area.querySelector('.inner-heading');
+
+  if (!h.dataset.split) {
+    h.dataset.split='1';
+    function wrapNode(node){
+      if(node.nodeType===3){
+        const frag=document.createDocumentFragment();
+        [...node.textContent].forEach(ch=>{
+          if(ch==='\n'||ch===' '){frag.appendChild(document.createTextNode(ch));return;}
+          const s=document.createElement('span');
+          s.className='ch'; s.textContent=ch; frag.appendChild(s);
+        }); node.replaceWith(frag);
+      } else if(node.nodeName!=='BR'){[...node.childNodes].forEach(wrapNode);}
+    }
+    [...h.childNodes].forEach(wrapNode);
+  }
+
+  // 移除动画类并清除内联样式
+  area.classList.remove('inner-fade-in');
+  const chars = h.querySelectorAll('.ch');
+  chars.forEach((s)=>{
+    s.style.cssText = '';
+  });
+
+  // 强制重绘
+  void area.offsetHeight;
+
+  // 设置延迟并添加动画类
+  requestAnimationFrame(()=>{
+    chars.forEach((s,i)=>{
+      s.style.transitionDelay = (i*0.03)+'s';
+    });
+    area.classList.add('inner-fade-in');
+  });
+}
+
+function showWins() {
+  const winSys = document.getElementById('win-sys');
+  const winInfo = document.getElementById('win-info');
+  winSys.classList.add('active');
+  winInfo.classList.add('active');
+  setTimeout(()=>{
+    winSys.style.animation = 'none';
+    winInfo.style.animation = 'none';
+    winSys.style.opacity = '1';
+    winInfo.style.opacity = '1';
+    winSys.style.transform = 'scale(1) translateY(0)';
+    winInfo.style.transform = 'scale(1) translateY(0)';
+  }, 500);
+  startDotRenderers();
+}
+function hideWins() {
+  document.getElementById('win-sys').classList.remove('active');
+  document.getElementById('win-info').classList.remove('active');
+  clearInterval(winTimer); winTimer = null;
+}
+
+let winTimer = null;
+function startDotRenderers() {
+  if(winTimer) clearInterval(winTimer);
+
+  const boxCnv = document.getElementById('win-canvas-box');
+  const sphCnv = document.getElementById('win-canvas-sphere');
+  const bx = boxCnv.getContext('2d');
+  const sx = sphCnv.getContext('2d');
+  const DOT = 2, STEP = 10;
+  let t = 0;
+
+  function rot(x,y,z,rx,ry){
+    // rotate Y then X
+    let x1 = x*Math.cos(ry) + z*Math.sin(ry);
+    let z1 = -x*Math.sin(ry) + z*Math.cos(ry);
+    let y1 = y*Math.cos(rx) - z1*Math.sin(rx);
+    let z2 = y*Math.sin(rx) + z1*Math.cos(rx);
+    return [x1, y1, z2];
+  }
+
+  function drawBox(ctx, W, H) {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0,0,W,H);
+    const cx=W/2, cy=H/2;
+    const rx = t*0.4, ry = t*0.6;
+    const hw=55, hh=80, hd=40; // half-width, half-height, half-depth
+    const cols = Math.ceil(hw*2/STEP), rows = Math.ceil(hh*2/STEP), deps = Math.ceil(hd*2/STEP);
+    const pts = [];
+    // 6 faces
+    for(let i=0;i<=cols;i++) for(let j=0;j<=rows;j++){
+      const lx=-hw+i*(hw*2/cols), ly=-hh+j*(hh*2/rows);
+      pts.push([lx,ly,-hd]); pts.push([lx,ly,hd]);
+    }
+    for(let i=0;i<=cols;i++) for(let k=0;k<=deps;k++){
+      const lx=-hw+i*(hw*2/cols), lz=-hd+k*(hd*2/deps);
+      pts.push([lx,-hh,lz]); pts.push([lx,hh,lz]);
+    }
+    for(let j=0;j<=rows;j++) for(let k=0;k<=deps;k++){
+      const ly=-hh+j*(hh*2/rows), lz=-hd+k*(hd*2/deps);
+      pts.push([-hw,ly,lz]); pts.push([hw,ly,lz]);
+    }
+    pts.forEach(([x,y,z])=>{
+      const [rx2,ry2,rz] = rot(x,y,z,rx,ry);
+      const scale = 1/(1+rz/200);
+      const px = cx + rx2*scale, py = cy + ry2*scale;
+      const alpha = Math.max(0.05, Math.min(1, (rz+150)/200));
+      ctx.fillStyle = `rgba(240,237,230,${alpha.toFixed(2)})`;
+      ctx.beginPath(); ctx.arc(px,py,DOT*scale,0,Math.PI*2); ctx.fill();
+    });
+  }
+
+  function drawSphere(ctx, W, H) {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0,0,W,H);
+    const cx=W/2, cy=H/2, R=58;
+    const rx = t*0.35, ry = t*0.5;
+    const N = 14;
+    for(let i=0;i<=N;i++) for(let j=0;j<=N*2;j++){
+      const phi = (i/N)*Math.PI;
+      const theta = (j/(N*2))*Math.PI*2;
+      const x = R*Math.sin(phi)*Math.cos(theta);
+      const y = R*Math.cos(phi);
+      const z = R*Math.sin(phi)*Math.sin(theta);
+      const [rx2,ry2,rz] = rot(x,y,z,rx,ry);
+      const scale = 1/(1+rz/200);
+      const px = cx+rx2*scale, py = cy+ry2*scale;
+      const alpha = Math.max(0.05, Math.min(1,(rz+R*1.2)/(R*2)));
+      ctx.fillStyle = `rgba(240,237,230,${alpha.toFixed(2)})`;
+      ctx.beginPath(); ctx.arc(px,py,DOT*scale,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  function frame(){
+    t += 0.012;
+    drawBox(bx, boxCnv.width, boxCnv.height);
+    drawSphere(sx, sphCnv.width, sphCnv.height);
+  }
+  winTimer = setInterval(frame, 1000/40);
+}
+
+function startInnerParticles() {
+  if (innerP5) { innerP5.raf && cancelAnimationFrame(innerP5.raf); innerP5.renderer && innerP5.renderer.dispose(); innerP5 = null; }
+  const THREE = window.THREE;
+  const cnv = document.getElementById('inner-canvas');
+  const renderer = new THREE.WebGLRenderer({canvas: cnv, antialias:true, alpha:true});
+  renderer.setClearColor(0x000000, 0);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+  const scene = new THREE.Scene();
+  const cam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  const geo = new THREE.PlaneGeometry(2,2);
+  const mat = new THREE.ShaderMaterial({
+    transparent:true,
+    uniforms:{
+      t:{value:0},
+      res:{value:new THREE.Vector2(window.innerWidth,window.innerHeight)},
+      mouse:{value:new THREE.Vector2(0.5,0.5)}
+    },
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.);}`,
+    fragmentShader:`
+      precision highp float;
+      uniform float t;uniform vec2 res;uniform vec2 mouse;varying vec2 vUv;
+      float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.-2.*f);float a=sin(dot(i,vec2(1.,113.)));float b=sin(dot(i+vec2(1.,0.),vec2(1.,113.)));float c=sin(dot(i+vec2(0.,1.),vec2(1.,113.)));float d=sin(dot(i+vec2(1.,1.),vec2(1.,113.)));return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}
+      void main(){
+        vec2 uv=vUv;
+        float str=1.;
+
+        for(int i=0;i<12;i++){
+          float lineIndex=float(i)-6.0;
+          float convergencePoint=0.5;
+          float targetOffset=lineIndex*0.018;
+          float spreadCurve=smoothstep(0.0,0.65,uv.x);
+          spreadCurve=pow(spreadCurve,1.2);
+
+          float baseY=mix(convergencePoint,convergencePoint+targetOffset,spreadCurve);
+
+          float waveAmp=spreadCurve*0.18;
+          float wave1=noise(vec2(uv.x*2.8-t*0.12,float(i)*0.18))*waveAmp;
+          float wave2=sin(uv.x*8.0-t*0.5+float(i)*0.4)*waveAmp*0.6;
+          float lineY=baseY+wave1+wave2;
+
+          float d=abs(uv.y-lineY);
+          float lineWidth=0.0025+spreadCurve*0.0015;
+          float line=smoothstep(lineWidth,0.,d);
+
+          float lineOpacity=mix(1.0,0.2,float(i)/11.0);
+          str*=(1.-line*0.95*lineOpacity);
+        }
+
+        float v=1.-str;
+        gl_FragColor=vec4(vec3(0.94,0.93,0.98)*v,v*0.85);
+      }`
+  });
+  scene.add(new THREE.Mesh(geo,mat));
+
+  let rafId, t=0;
+  function loop(){ t+=0.015; mat.uniforms.t.value=t; renderer.render(scene,cam); rafId=requestAnimationFrame(loop); }
+  loop();
+
+  const onResize=()=>{ renderer.setSize(window.innerWidth,window.innerHeight,false); mat.uniforms.res.value.set(window.innerWidth,window.innerHeight); };
+  window.addEventListener('resize',onResize);
+
+  innerP5={raf:null,renderer,dispose(){cancelAnimationFrame(rafId);window.removeEventListener('resize',onResize);renderer.dispose();}};
+}
+
+function enterInner2() {
+  if (isTransitioning) return;
+  isTransitioning = true;
+
+  // 停止首页流体背景动画以释放性能
+  if(window.bgFluid) window.bgFluid.stop();
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('show');
+  setTimeout(() => {
+    currentPage = 'inner2';
+    showGlobalNav(true);
+    const inner2 = document.getElementById('inner2');
+    inner2.style.display = 'block';
+    inner2.classList.add('active');
+    inner2.scrollTop = 0; // 重置滚动位置
+    document.getElementById('ui').style.display = 'none';
+    document.getElementById('bg-canvas').style.display = 'none';
+    document.getElementById('corner-frame').style.display = 'none';
+    document.querySelector('.v-rule').style.display = 'none';
+    document.querySelector('.deco-marquee').style.display = 'none';
+
+    // 启动作品页plasma背景
+    if(window.i2PlasmaBg) window.i2PlasmaBg.start();
+
+    // 确保海报拖尾容器处于初始状态（隐藏）
+    posterTrailActive = false;
+    const trailContainer = document.getElementById('poster-trail-content');
+    if (trailContainer) {
+      trailContainer.classList.remove('active');
+    }
+    const hint = document.getElementById('poster-trail-hint');
+    if (hint) {
+      hint.classList.remove('show');
+    }
+    if (imageTrailInstance) {
+      imageTrailInstance.dispose();
+      imageTrailInstance = null;
+    }
+
+    setTimeout(()=>{
+      const i2Menu = document.getElementById('i2-menu-toggle');
+      if(i2Menu) i2Menu.classList.add('visible');
+      const i2Cross = document.getElementById('i2-cross');
+      if(i2Cross) i2Cross.style.opacity = '1';
+      // 启动Plasma背景动画
+      if(window.i2PlasmaBg) window.i2PlasmaBg.start();
+    }, 100);
+    setTimeout(() => { veil.classList.remove('show'); isTransitioning = false; }, 100);
+  }, 600);
+}
+
+function exitInner2() {
+  // 检查是否在详情页
+  const detailPage = document.getElementById('i2-detail-page');
+  if(detailPage && detailPage.style.display === 'block') {
+    // 如果在详情页，先返回作品展示页
+    exitDetailPage();
+    return;
+  }
+
+  if (isTransitioning) return;
+  isTransitioning = true;
+
+  // 先关闭作品菜单
+  if(worksMenuOpen) {
+    toggleWorksMenu();
+  }
+
+  hideWork();
+  const veil = document.getElementById('veil');
+  veil.classList.add('show');
+
+  // 停止Plasma背景动画
+  if(window.i2PlasmaBg) window.i2PlasmaBg.stop();
+
+  // 清理海报拖尾效果（如果正在显示）
+  if (posterTrailActive) {
+    exitImageTrail();
+  }
+
+  setTimeout(() => {
+    currentPage = 'home';
+    showGlobalNav(null);
+    const i2Menu = document.getElementById('i2-menu-toggle');
+    if(i2Menu) i2Menu.classList.remove('visible');
+    const i2Cross = document.getElementById('i2-cross');
+    if(i2Cross) i2Cross.style.opacity = '0';
+    const inner2 = document.getElementById('inner2');
+    inner2.classList.remove('active');
+    inner2.style.display = 'none';
+    inner2.scrollTop = 0; // 重置inner2滚动位置
+    const inner = document.getElementById('inner');
+    inner.classList.remove('active');
+    inner.style.display = 'none';
+    inner.scrollTop = 0;
+    stopCurvedText();
+    if (innerP5) { innerP5.dispose(); innerP5 = null; }
+    document.getElementById('ui').style.display = '';
+    const ui = document.getElementById('ui');
+    ui.style.transform = 'scale(1)';
+    ui.style.opacity = '1';
+    document.getElementById('inner-canvas').style.display = 'none';
+    const heroCard = document.getElementById('hero-card');
+    if(heroCard){
+      heroCard.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(0.88)';
+      heroCard.querySelectorAll('#hero-card > *').forEach(el => {
+        el.style.transform = 'translateZ(0)';
+      });
+    }
+    document.getElementById('bg-canvas').style.display = '';
+    document.getElementById('corner-frame').style.display = '';
+    document.querySelector('.v-rule').style.display = '';
+    document.querySelector('.deco-marquee').style.display = '';
+
+    // 恢复首页流体背景动画
+    if(window.bgFluid) window.bgFluid.start();
+
+    setTimeout(()=>{
+      if(window.restartShuffle) window.restartShuffle();
+    }, 100);
+  }, 300);
+
+  setTimeout(() => {
+    veil.classList.remove('show');
+    isTransitioning = false;
+  }, 900);
+}
+
+function enterContact() {
+  if (isTransitioning) return;
+  isTransitioning = true;
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('show');
+
+  setTimeout(() => {
+    currentPage = 'contact';
+    showGlobalNav(true);
+
+    // 停止首页流体背景动画
+    if(window.bgFluid) window.bgFluid.stop();
+
+    // 隐藏其他页面
+    document.getElementById('ui').style.display = 'none';
+    document.getElementById('bg-canvas').style.display = 'none';
+    document.getElementById('corner-frame').style.display = 'none';
+    document.querySelector('.v-rule').style.display = 'none';
+    document.querySelector('.deco-marquee').style.display = 'none';
+
+    const inner = document.getElementById('inner');
+    if(inner) {
+      inner.style.display = 'none';
+      inner.classList.remove('active');
+    }
+
+    const inner2 = document.getElementById('inner2');
+    if(inner2) {
+      inner2.style.display = 'none';
+      inner2.classList.remove('active');
+    }
+
+    // 显示联系方式页面
+    const contact = document.getElementById('contact');
+    contact.style.display = 'block';
+    contact.classList.add('active');
+    contact.scrollTop = 0; // 重置滚动位置
+
+    // 启动联系页网格动画
+    if(window.contactGrid) window.contactGrid.start();
+
+    // 触发窗口弹出动画
+    setTimeout(() => {
+      const windows = ['contact-win-1', 'contact-win-2', 'contact-win-3', 'contact-win-4'];
+      let topZ = 10; // 初始最高z-index值
+
+      windows.forEach((id, index) => {
+        setTimeout(() => {
+          const win = document.getElementById(id);
+          if(win) {
+            win.classList.add('show');
+
+            // 给每个窗口添加点击置顶事件
+            win.addEventListener('click', function(e) {
+              // 阻止事件冒泡
+              e.stopPropagation();
+              // 将当前窗口z-index设为最高
+              topZ++;
+              this.style.zIndex = topZ;
+            });
+          }
+        }, index * 150);
+      });
+    }, 200);
+
+    // 初始化文字挤压效果
+    setTimeout(() => {
+      initTextPressure();
+    }, 600);
+
+    // 初始化ASCII文字效果
+    setTimeout(() => {
+      if (contactAsciiInstance === null) {
+        initContactAscii();
+      }
+    }, 800);
+
+    setTimeout(() => {
+      veil.classList.remove('show');
+      isTransitioning = false;
+    }, 100);
+  }, 600);
+}
+
+function exitContact() {
+  if (isTransitioning) return;
+  isTransitioning = true;
+
+  const veil = document.getElementById('veil');
+  veil.classList.add('show');
+
+  // 停止联系页网格动画
+  if(window.contactGrid) window.contactGrid.stop();
+
+  // 清理ASCII文字效果
+  disposeContactAscii();
+
+  // 清理文字挤压效果
+  stopTextPressure();
+
+  setTimeout(() => {
+    currentPage = 'home';
+    showGlobalNav(null);
+
+    const contact = document.getElementById('contact');
+    contact.classList.remove('active');
+    contact.style.display = 'none';
+
+    // 清理联系页窗口状态
+    const windows = ['contact-win-1', 'contact-win-2', 'contact-win-3', 'contact-win-4'];
+    windows.forEach(id => {
+      const win = document.getElementById(id);
+      if(win) {
+        win.classList.remove('show');
+        win.style.zIndex = '';
+      }
+    });
+
+    // 确保inner和inner2页面完全隐藏和清理
+    const inner = document.getElementById('inner');
+    if(inner) {
+      inner.style.display = 'none';
+      inner.classList.remove('active');
+    }
+    document.getElementById('inner-canvas').style.display = 'none';
+
+    const inner2 = document.getElementById('inner2');
+    if(inner2) {
+      inner2.style.display = 'none';
+      inner2.classList.remove('active');
+    }
+
+    // 停止inner页面的动画
+    if (innerP5) {
+      innerP5.dispose();
+      innerP5 = null;
+    }
+    stopCurvedText();
+    hideWins();
+
+    // 停止inner2页面的plasma背景
+    if(window.i2PlasmaBg) window.i2PlasmaBg.stop();
+
+    document.getElementById('ui').style.display = '';
+    const ui = document.getElementById('ui');
+    ui.style.transform = 'scale(1)';
+    ui.style.opacity = '1';
+
+    // 恢复首页流体背景动画
+    if(window.bgFluid) window.bgFluid.start();
+
+    // 重置hero-card
+    const heroCard = document.getElementById('hero-card');
+    if(heroCard){
+      heroCard.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+      heroCard.querySelectorAll('#hero-card > *').forEach(el => {
+        el.style.transform = 'translateZ(0)';
+      });
+    }
+
+    document.getElementById('bg-canvas').style.display = '';
+    document.getElementById('corner-frame').style.display = '';
+    const cornerLabel = document.getElementById('corner-label');
+    if(cornerLabel) cornerLabel.style.display = '';
+    document.querySelector('.v-rule').style.display = '';
+    document.querySelector('.deco-marquee').style.display = '';
+
+    setTimeout(() => {
+      if(window.restartShuffle) window.restartShuffle();
+    }, 200);
+
+    setTimeout(() => {
+      veil.classList.remove('show');
+      isTransitioning = false;
+    }, 100);
+  }, 600);
+}
+
+// 当前作品标识
+let currentWorkId = null;
+
+// 作品详情数据
+const workDetailsData = {
+  'visual': {
+    id: 'visual',
+    title: '视觉形象设计',
+    subtitle: 'Visual Identity',
+    description: '品牌视觉形象系统的完整构建，从核心图形到应用延展，让每一个视觉元素都承载品牌的独特气质。',
+    images: [
+      'IP ZPJ.png'
+    ],
+    details: [
+      { label: '项目类型', value: 'IP形象设计' },
+      { label: '设计周期', value: '4周' },
+      { label: '主要工具', value: 'Adobe Illustrator, Photoshop' }
+    ]
+  },
+  'interactive': {
+    id: 'interactive',
+    title: '交互开发项目',
+    subtitle: 'Interactive Development',
+    description: '将设计理念转化为可交互的数字体验，关注细节，追求流畅自然的用户体验。',
+    images: [],
+    isComplete: false,  // 标记为未完成
+    details: [
+      { label: '项目类型', value: '网页交互开发' },
+      { label: '技术栈', value: 'HTML5, CSS3, JavaScript' },
+      { label: '开发周期', value: '6周' }
+    ]
+  },
+  'strategy': {
+    id: 'strategy',
+    title: '品牌策略',
+    subtitle: 'Brand Strategy',
+    description: '从品牌定位到视觉呈现的完整策略规划，让品牌形象与核心价值完美契合。',
+    images: [
+      'PP ZPJ.png'
+    ],
+    details: [
+      { label: '项目类型', value: '品牌策略规划' },
+      { label: '服务内容', value: '品牌定位、视觉系统、传播策略' },
+      { label: '项目周期', value: '8周' }
+    ]
+  },
+  'generative': {
+    id: 'generative',
+    title: '生成艺术',
+    subtitle: 'Generative Art',
+    description: '算法美学与创意编程的交叉探索，让代码成为艺术表达的媒介。',
+    images: [],
+    isComplete: false,
+    details: [
+      { label: '项目类型', value: '生成艺术创作' },
+      { label: '技术栈', value: 'Processing, p5.js, Three.js' },
+      { label: '创作周期', value: '持续更新' }
+    ]
+  }
+};
+
+function showWork(imageName) {
+  // 如果海报拖尾效果正在运行，先退出
+  if (posterTrailActive) {
+    exitImageTrail();
+  }
+
+  const display = document.getElementById('i2-work-display');
+  const img = document.getElementById('i2-work-img');
+  const cross = document.getElementById('i2-cross');
+  const glitchCanvas = document.getElementById('glitch-canvas');
+  const glitchEffects = document.querySelector('.glitch-effects');
+  const workDetail = document.getElementById('i2-work-detail');
+
+  // 根据图片名称判断作品类型
+  if(imageName.includes('IP')) currentWorkId = 'visual';
+  else if(imageName.includes('UI')) currentWorkId = 'interactive';
+  else if(imageName.includes('PP')) currentWorkId = 'strategy';
+  else if(imageName.includes('YX')) currentWorkId = 'generative';
+  else currentWorkId = null;
+
+  console.log('当前作品ID:', currentWorkId, '图片:', imageName);
+
+  // 如果已经显示了其他图片，使用glitch效果切换
+  if(display.style.display === 'block' && img.src) {
+    // 启动Canvas故障动画
+    startGlitchAnimation(glitchCanvas);
+
+    // 启动CSS效果
+    glitchEffects.classList.add('active');
+
+    setTimeout(() => {
+      img.style.opacity = '0';
+      // 隐藏旧的详情弹窗
+      if(workDetail) {
+        workDetail.style.opacity = '0';
+        workDetail.style.transform = 'translateY(20px)';
+      }
+    }, 100);
+
+    setTimeout(() => {
+      img.src = imageName;
+      setTimeout(() => {
+        img.style.opacity = '1';
+        glitchEffects.classList.remove('active');
+        // 显示新的详情弹窗
+        showWorkDetail();
+      }, 50);
+    }, 450);
+
+  } else {
+    // 首次显示
+    img.src = imageName;
+    display.style.display = 'block';
+    cross.style.opacity = '0';
+
+    setTimeout(() => {
+      display.style.opacity = '1';
+      setTimeout(() => {
+        img.style.opacity = '1';
+        // 显示详情弹窗
+        showWorkDetail();
+      }, 200);
+    }, 50);
+  }
+}
+
+function showWorkDetail() {
+  const workDetail = document.getElementById('i2-work-detail');
+  if(!workDetail) return;
+
+  workDetail.style.display = 'block';
+  setTimeout(() => {
+    workDetail.style.opacity = '1';
+    workDetail.style.transform = 'scale(1)';
+  }, 100);
+}
+
+function closeWorkDetail() {
+  const workDetail = document.getElementById('i2-work-detail');
+  if(!workDetail) return;
+
+  workDetail.style.opacity = '0';
+  workDetail.style.transform = 'scale(0.7)';
+  setTimeout(() => {
+    workDetail.style.display = 'none';
+  }, 600);
+}
+
+function viewWorkDetail() {
+  console.log('viewWorkDetail 被调用, currentWorkId:', currentWorkId);
+
+  if(!currentWorkId) {
+    console.error('currentWorkId 未设置！');
+    return;
+  }
+
+  const detailPage = document.getElementById('i2-detail-page');
+  const detailContent = document.getElementById('i2-detail-content');
+  const display = document.getElementById('i2-work-display');
+  const workDetailPopup = document.getElementById('i2-work-detail');
+  const btn = document.getElementById('i2-detail-btn');
+  const btnText = document.getElementById('i2-detail-btn-text');
+
+  console.log('元素检查:', {
+    detailPage: !!detailPage,
+    detailContent: !!detailContent,
+    display: !!display,
+    workDetailPopup: !!workDetailPopup,
+    btn: !!btn,
+    btnText: !!btnText
+  });
+
+  // 检查是否已在详情页
+  if(detailPage.style.display === 'block') {
+    // 返回作品展示
+    exitDetailPage();
+    return;
+  }
+
+  // 更改按钮文字为"返回"
+  btnText.textContent = '← 返回';
+
+  // 隐藏右侧菜单按钮
+  const menuToggle = document.getElementById('i2-menu-toggle');
+  if(menuToggle) {
+    menuToggle.style.opacity = '0';
+    menuToggle.style.pointerEvents = 'none';
+  }
+
+  // 隐藏详情弹窗
+  workDetailPopup.style.opacity = '0';
+  workDetailPopup.style.transform = 'scale(0.7)';
+
+  // 作品展示框带物理抖动效果向下平移离开屏幕
+  const displayRect = display.getBoundingClientRect();
+  display.style.transition = 'transform 1.2s cubic-bezier(.34,1.56,.64,1), opacity .8s ease';
+  display.style.transform = `translate(-50%, ${window.innerHeight - displayRect.top + 200}px)`;
+  display.style.opacity = '0';
+
+  setTimeout(() => {
+    // 显示详情页
+    detailPage.style.display = 'block';
+
+    // 加载详情内容
+    loadDetailContent(currentWorkId);
+
+    // 详情内容淡入
+    setTimeout(() => {
+      detailContent.style.opacity = '1';
+    }, 100);
+  }, 800);
+}
+
+function exitDetailPage() {
+  const detailPage = document.getElementById('i2-detail-page');
+  const detailContent = document.getElementById('i2-detail-content');
+  const display = document.getElementById('i2-work-display');
+  const workDetailPopup = document.getElementById('i2-work-detail');
+  const btnText = document.getElementById('i2-detail-btn-text');
+  const menuToggle = document.getElementById('i2-menu-toggle');
+
+  // 详情内容淡出
+  detailContent.style.opacity = '0';
+
+  setTimeout(() => {
+    detailPage.style.display = 'none';
+
+    // 恢复右侧菜单按钮
+    if(menuToggle) {
+      menuToggle.style.opacity = '1';
+      menuToggle.style.pointerEvents = 'all';
+    }
+
+    // 作品展示框从下方带物理抖动效果回到屏幕
+    display.style.transition = 'transform 1.2s cubic-bezier(.34,1.56,.64,1), opacity .8s ease';
+    display.style.transform = 'translate(-50%, -50%)';
+    display.style.opacity = '1';
+
+    setTimeout(() => {
+      // 恢复按钮文字
+      btnText.textContent = '浏览详情 →';
+
+      // 显示详情弹窗
+      workDetailPopup.style.opacity = '1';
+      workDetailPopup.style.transform = 'scale(1)';
+    }, 600);
+  }, 300);
+}
+
+function loadDetailContent(workId) {
+  const data = workDetailsData[workId];
+  if(!data) return;
+
+  const detailContent = document.getElementById('i2-detail-content');
+
+  // 检查作品是否完成
+  if(data.isComplete === false) {
+    // 显示未完成提示页面
+    detailContent.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center">
+        <div style="font-size:120px;opacity:.15;margin-bottom:32px">⚠</div>
+        <h1 class="detail-heading" style="font-size:clamp(36px,6vw,72px);font-weight:700;line-height:1.2;letter-spacing:-.02em;text-transform:uppercase;color:#f0ede6;margin:0 0 24px 0;opacity:.6">
+          内容开发中
+        </h1>
+        <p style="font-size:16px;line-height:1.8;color:#f0ede6;opacity:.4;max-width:520px;margin:0">
+          该作品详情页正在制作中，敬请期待...
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  // 构建详情页HTML
+  let html = `
+    <div style="text-align:center;margin-bottom:80px">
+      <h1 class="detail-heading" style="font-size:clamp(36px,6vw,88px);font-weight:700;line-height:1.2;letter-spacing:-.02em;text-transform:uppercase;color:#f0ede6;margin:0 0 16px 0">
+        ${data.title}
+      </h1>
+      <p style="font-size:16px;letter-spacing:.3em;text-transform:uppercase;opacity:.4;margin:0 0 32px 0">${data.subtitle}</p>
+      <p style="font-size:16px;line-height:1.8;color:#f0ede6;opacity:.7;max-width:720px;margin:0 auto">${data.description}</p>
+    </div>
+  `;
+
+  // 项目信息
+  if(data.details && data.details.length > 0) {
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:32px;margin-bottom:80px">';
+    data.details.forEach(detail => {
+      html += `
+        <div style="background:rgba(240,237,230,.05);border:1px solid rgba(240,237,230,.12);border-radius:12px;padding:32px">
+          <div style="font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.4;margin-bottom:12px">${detail.label}</div>
+          <div style="font-size:18px;font-weight:700;color:#f0ede6">${detail.value}</div>
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+
+  // 作品图片展示
+  if(data.images && data.images.length > 0) {
+    html += '<div style="display:grid;gap:32px">';
+    data.images.forEach((imgSrc, index) => {
+      html += `
+        <div style="background:rgba(240,237,230,.03);border:1px solid rgba(240,237,230,.08);border-radius:18px;overflow:hidden;opacity:0;transform:translateY(40px);transition:opacity .8s ease,transform .8s cubic-bezier(.34,1.56,.64,1);transition-delay:${index * 0.1}s" class="detail-img-item">
+          <img src="${imgSrc}" style="width:100%;height:auto;display:block" alt="作品图片 ${index + 1}">
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+
+  detailContent.innerHTML = html;
+
+  // 触发图片动画
+  setTimeout(() => {
+    document.querySelectorAll('.detail-img-item').forEach(item => {
+      item.style.opacity = '1';
+      item.style.transform = 'translateY(0)';
+    });
+  }, 200);
+
+  // 为标题添加字符分割动画效果
+  setTimeout(() => {
+    const heading = detailContent.querySelector('.detail-heading');
+    if(heading && !heading.dataset.split) {
+      heading.dataset.split = '1';
+      const text = heading.textContent;
+      heading.textContent = '';
+      [...text].forEach((ch, i) => {
+        const span = document.createElement('span');
+        span.className = 'ch';
+        span.textContent = ch === ' ' ? ' ' : ch;
+        span.style.display = 'inline-block';
+        span.style.opacity = '0';
+        span.style.transform = 'translateY(120%) scaleY(2.3) scaleX(0.7)';
+        span.style.transformOrigin = '50% 0%';
+        span.style.transition = 'opacity 1.2s cubic-bezier(.34,1.56,.64,1), transform 1.2s cubic-bezier(.34,1.56,.64,1)';
+        span.style.transitionDelay = (i * 0.04) + 's';
+        heading.appendChild(span);
+      });
+
+      setTimeout(() => {
+        heading.querySelectorAll('.ch').forEach(ch => {
+          ch.style.opacity = '1';
+          ch.style.transform = 'translateY(0) scaleY(1) scaleX(1)';
+        });
+      }, 50);
+    }
+  }, 300);
+}
+
+// 点击详情页空白区域返回
+document.addEventListener('click', function(e) {
+  const detailPage = document.getElementById('i2-detail-page');
+  const detailContent = document.getElementById('i2-detail-content');
+
+  if(detailPage && detailPage.style.display === 'block') {
+    // 如果点击的是详情页本身而不是内容区域，则返回
+    if(e.target === detailPage) {
+      exitDetailPage();
+    }
+  }
+});
+
+function hideWork() {
+  // 退出海报拖尾效果
+  if (posterTrailActive) {
+    exitImageTrail();
+  }
+
+  const display = document.getElementById('i2-work-display');
+  const img = document.getElementById('i2-work-img');
+  const cross = document.getElementById('i2-cross');
+  const workDetail = document.getElementById('i2-work-detail');
+
+  img.style.opacity = '0';
+  display.style.opacity = '0';
+
+  // 隐藏详情弹窗
+  if(workDetail) {
+    workDetail.style.opacity = '0';
+    workDetail.style.transform = 'translateY(20px)';
+  }
+
+  setTimeout(() => {
+    display.style.display = 'none';
+    cross.style.opacity = '1';
+    if(workDetail) workDetail.style.display = 'none';
+  }, 600);
+}
+
+// Canvas Glitch Effect - 优化版：数据损坏水波效果
+let glitchAnimFrame = null;
+function drawGlitchEffect(canvas, progress) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const time = Date.now() * 0.001;
+
+  // 调色板：深灰底 -> 蓝 -> 青 -> 白，品红作高光
+  const palette = [
+    [70, 72, 78],      // 深灰
+    [60, 90, 170],     // 蓝
+    [70, 150, 230],    // 青
+    [120, 210, 240],   // 亮青
+    [235, 240, 250]    // 白
+  ];
+
+  function getPaletteColor(v) {
+    const c = Math.max(0, Math.min(0.999, v)) * (palette.length - 1);
+    const i = Math.floor(c);
+    const f = c - i;
+    const a = palette[i];
+    const b = palette[i + 1] || a;
+    return [
+      a[0] + (b[0] - a[0]) * f,
+      a[1] + (b[1] - a[1]) * f,
+      a[2] + (b[2] - a[2]) * f
+    ];
+  }
+
+  // 生成每行的水平撕裂位移
+  const numRows = 30;
+  const rowHeight = h / numRows;
+
+  for(let row = 0; row < numRows; row++) {
+    const y = row * rowHeight;
+
+    // 随机撕裂位移
+    const shift = Math.random() < 0.3 ?
+      (Math.random() - 0.5) * 60 * (Math.random() < 0.15 ? 3 : 1) : 0;
+
+    // 多层正弦噪声生成颜色值
+    const noise1 = Math.sin(time * 1.5 + row * 0.3) * 0.5 + 0.5;
+    const noise2 = Math.sin(time * 2.3 + row * 0.15) * 0.5 + 0.5;
+    const noise3 = Math.sin(time + y * 0.01) * 0.5 + 0.5;
+    const noiseValue = (noise1 * 0.4 + noise2 * 0.3 + noise3 * 0.3);
+
+    // 映射到调色板
+    const [r, g, b] = getPaletteColor(noiseValue);
+    const alpha = 0.15 + Math.random() * 0.25;
+
+    // 绘制条带
+    const stripHeight = rowHeight + Math.random() * 5;
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    ctx.fillRect(shift, y, w + Math.abs(shift), stripHeight);
+
+    // RGB通道分离
+    if(Math.random() > 0.7) {
+      const rgbShift = 3 + Math.random() * 5;
+      ctx.fillStyle = `rgba(${r + 50}, ${g}, ${b + 50}, ${alpha * 0.5})`;
+      ctx.fillRect(shift + rgbShift, y, w, stripHeight);
+
+      ctx.fillStyle = `rgba(${r}, ${g + 50}, ${b + 80}, ${alpha * 0.5})`;
+      ctx.fillRect(shift - rgbShift, y, w, stripHeight);
+    }
+
+    // 品红闪点（高光）
+    if(Math.random() > 0.92) {
+      ctx.fillStyle = `rgba(255, 100, 200, ${alpha * 1.5})`;
+      const flashW = 40 + Math.random() * 80;
+      ctx.fillRect(shift + Math.random() * 100, y, flashW, stripHeight * 0.7);
+    }
+  }
+
+  // 垂直噪声线
+  for(let i = 0; i < 8; i++) {
+    if(Math.random() > 0.75) {
+      const x = Math.random() * w;
+      const [r, g, b] = getPaletteColor(Math.random());
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.2)`;
+      ctx.fillRect(x, 0, 2, h);
+    }
+  }
+}
+
+function startGlitchAnimation(canvas) {
+  if(glitchAnimFrame) cancelAnimationFrame(glitchAnimFrame);
+
+  // 降低分辨率以提高像素化效果
+  canvas.width = 275;  // 原1100的1/4
+  canvas.height = 155; // 原620的1/4
+  canvas.style.opacity = '1';
+  canvas.style.imageRendering = 'pixelated'; // 确保像素化锐利
+
+  let startTime = Date.now();
+  const duration = 500;
+
+  function animate() {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    drawGlitchEffect(canvas, progress);
+
+    if(progress < 1) {
+      glitchAnimFrame = requestAnimationFrame(animate);
+    } else {
+      canvas.style.opacity = '0';
+    }
+  }
+
+  animate();
+}
+
+function stopGlitchAnimation(canvas) {
+  if(glitchAnimFrame) {
+    cancelAnimationFrame(glitchAnimFrame);
+    glitchAnimFrame = null;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  canvas.style.opacity = '0';
+}
+
+let worksMenuOpen = false;
+let menuResetTimer = null;
+
+function toggleWorksMenu() {
+  const toggle = document.getElementById('i2-menu-toggle');
+  const panel = document.getElementById('i2-menu-panel');
+  const labels = panel.querySelectorAll('.i2-menu-label');
+
+  // 清除之前的重置定时器
+  if(menuResetTimer) {
+    clearTimeout(menuResetTimer);
+    menuResetTimer = null;
+  }
+
+  worksMenuOpen = !worksMenuOpen;
+
+  if(worksMenuOpen) {
+    // 打开菜单：移除所有inline样式，让CSS接管
+    labels.forEach(label => {
+      label.style.cssText = '';
+    });
+    toggle.classList.add('open');
+    panel.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  } else {
+    // 关闭菜单
+    toggle.classList.remove('open');
+    panel.classList.remove('active');
+    document.body.style.overflow = '';
+
+    // 等待面板完全滑出后再重置遮罩层和标签
+    menuResetTimer = setTimeout(() => {
+      // 重置遮罩层位置
+      const before = window.getComputedStyle(panel, '::before');
+      const after = window.getComputedStyle(panel, '::after');
+
+      labels.forEach(label => {
+        label.style.transition = 'none';
+        label.style.transform = 'translateY(140%) rotate(10deg)';
+        label.style.opacity = '0';
+        label.offsetHeight; // 强制重排
+        label.style.transition = '';
+      });
+      menuResetTimer = null;
+    }, 900);
+  }
+}
+
+// TRAIL
+(function(){
+  const cnv = document.getElementById('trail-canvas');
+  const ctx = cnv.getContext('2d');
+  let active = true;
+  let mx=window.innerWidth/2, my=window.innerHeight/2;
+  let x=mx, y=my, vx=0, vy=0;
+  const R = 48;
+
+  function resize(){ cnv.width=window.innerWidth; cnv.height=window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+
+  cnv.style.cssText='position:fixed;inset:0;z-index:12;pointer-events:none;mix-blend-mode:difference;display:none';
+
+  document.addEventListener('mousemove', e=>{ mx=e.clientX; my=e.clientY; });
+
+  function frame(){
+    // fade trail slowly
+    ctx.fillStyle='rgba(0,0,0,0.04)';
+    ctx.fillRect(0,0,cnv.width,cnv.height);
+
+    if(active){
+      // spring physics toward mouse
+      const dx=mx-x, dy=my-y;
+      vx += dx*0.12; vy += dy*0.12;
+      vx *= 0.72; vy *= 0.72;
+      x += vx; y += vy;
+
+      // ink blob: size scales with speed
+      const speed = Math.sqrt(vx*vx+vy*vy);
+      const r = Math.max(8, R - speed*1.2);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,1)'; ctx.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+
+  window._trailSetActive = v => {
+    active = v;
+    cnv.style.display = v ? 'block' : 'none';
+    if(!v) ctx.clearRect(0,0,cnv.width,cnv.height);
+  };
+  window._trailSetActive(false);
+})();
+
+// CORNER LABEL BARCODE
+(function(){
+  const cnv = document.getElementById('cl-barcode');
+  if (!cnv) return;
+  const ctx = cnv.getContext('2d');
+  const W = cnv.width, H = cnv.height;
+  const bars = [3,1,2,1,3,2,1,1,2,3,1,2,1,1,3,1,2,2,1,3,1,1,2,1,3,2,1,1,2,1];
+  let x = 0;
+  const total = bars.reduce((a,b)=>a+b,0);
+  const unit = W / total;
+  bars.forEach((w,i) => {
+    if (i%2===0) { ctx.fillStyle='#f0ede6'; ctx.fillRect(x,0,w*unit-.5,H); }
+    x += w*unit;
+  });
+})();
+
+// I2 CROSS
+(function(){
+  const cnv = document.getElementById('i2-cross');
+  if (!cnv) return;
+  const W = 1100, H = 620;
+  cnv.width = W; cnv.height = H;
+  const ctx = cnv.getContext('2d');
+  const R = 18;
+  // rounded rect (solid)
+  ctx.strokeStyle = 'rgba(240,237,230,0.3)';
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(R, 0); ctx.lineTo(W-R, 0); ctx.arcTo(W,0,W,R,R);
+  ctx.lineTo(W, H-R); ctx.arcTo(W,H,W-R,H,R);
+  ctx.lineTo(R, H); ctx.arcTo(0,H,0,H-R,R);
+  ctx.lineTo(0, R); ctx.arcTo(0,0,R,0,R);
+  ctx.closePath(); ctx.stroke();
+  // diagonals (dashed)
+  ctx.setLineDash([4, 7]);
+  ctx.strokeStyle = 'rgba(240,237,230,0.2)';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(W,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(W,0); ctx.lineTo(0,H); ctx.stroke();
+})();
+
+// WAVE GRID
+(function(){
+  const cnv = document.getElementById('wave-grid');
+  if (!cnv) return;
+  cnv.width = 420; cnv.height = 320;
+  const ctx = cnv.getContext('2d');
+  const COLS = 18, ROWS = 14, AMP = 10, FREQ = 0.018, SPEED = 0.008;
+  let t = 0;
+  function pt(c, r) {
+    const edge = (c===0||c===COLS||r===0||r===ROWS);
+    const bx = c*(420/COLS), by = r*(320/ROWS);
+    if (edge) return [bx, by];
+    const nx = (c/COLS)*2-1, ny = (r/ROWS)*2-1;
+    const falloff = (1-Math.abs(nx))*(1-Math.abs(ny));
+    const dx = Math.sin(c*FREQ*60 + r*0.4 + t)*AMP*falloff;
+    const dy = Math.sin(r*FREQ*60 + c*0.3 + t*0.8)*AMP*falloff;
+    return [bx+dx, by+dy];
+  }
+  function draw() {
+    ctx.clearRect(0, 0, 420, 320);
+    ctx.strokeStyle = 'rgba(240,237,230,1)';
+    for (let r = 0; r <= ROWS; r++) {
+      ctx.lineWidth = (r===0||r===ROWS) ? 1.8 : 1.4;
+      ctx.beginPath();
+      for (let c = 0; c <= COLS; c++) {
+        const [x,y] = pt(c,r);
+        c===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    for (let c = 0; c <= COLS; c++) {
+      ctx.lineWidth = (c===0||c===COLS) ? 1.8 : 1.4;
+      ctx.beginPath();
+      for (let r = 0; r <= ROWS; r++) {
+        const [x,y] = pt(c,r);
+        r===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    t += SPEED;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// CONTACT WAVE GRID
+(function(){
+  const cnv = document.getElementById('contact-grid');
+  if (!cnv) return;
+
+  let animationId = null;
+  let isRunning = false;
+
+  function resize() {
+    cnv.width = window.innerWidth;
+    cnv.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const ctx = cnv.getContext('2d');
+  const COLS = 32, ROWS = 24, AMP = 18, FREQ = 0.015, SPEED = 0.006;
+  let t = 0;
+
+  function pt(c, r) {
+    const edge = (c===0||c===COLS||r===0||r===ROWS);
+    const bx = c*(cnv.width/COLS), by = r*(cnv.height/ROWS);
+    if (edge) return [bx, by];
+    const nx = (c/COLS)*2-1, ny = (r/ROWS)*2-1;
+    const falloff = (1-Math.abs(nx))*(1-Math.abs(ny));
+    const dx = Math.sin(c*FREQ*60 + r*0.4 + t)*AMP*falloff;
+    const dy = Math.sin(r*FREQ*60 + c*0.3 + t*0.8)*AMP*falloff;
+    return [bx+dx, by+dy];
+  }
+
+  function draw() {
+    if(!isRunning) return;
+
+    ctx.clearRect(0, 0, cnv.width, cnv.height);
+    ctx.strokeStyle = 'rgba(240,237,230,1)';
+
+    for (let r = 0; r <= ROWS; r++) {
+      ctx.lineWidth = (r===0||r===ROWS) ? 1.8 : 1.2;
+      ctx.beginPath();
+      for (let c = 0; c <= COLS; c++) {
+        const [x,y] = pt(c,r);
+        c===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+
+    for (let c = 0; c <= COLS; c++) {
+      ctx.lineWidth = (c===0||c===COLS) ? 1.8 : 1.2;
+      ctx.beginPath();
+      for (let r = 0; r <= ROWS; r++) {
+        const [x,y] = pt(c,r);
+        r===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+
+    t += SPEED;
+    animationId = requestAnimationFrame(draw);
+  }
+
+  function start() {
+    if(isRunning) return;
+    isRunning = true;
+    draw();
+  }
+
+  function stop() {
+    isRunning = false;
+    if(animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+    // 清空画布
+    ctx.clearRect(0, 0, cnv.width, cnv.height);
+  }
+
+  // 导出控制函数
+  window.contactGrid = { start, stop };
+})();
+
+
+// CONTACT WINDOW TOGGLE
+function toggleContactWindow(windowId) {
+  const win = document.getElementById(windowId);
+  if(!win) return;
+
+  // 添加抖动动画类
+  win.classList.add('shake');
+
+  // 动画结束后移除类，以便下次再触发
+  setTimeout(() => {
+    win.classList.remove('shake');
+  }, 500);
+}
+
+// IMAGE TRAIL - Helper Functions
+function lerp(a, b, n) {
+  return (1 - n) * a + n * b;
+}
+
+function getLocalPointerPos(e, rect) {
+  let clientX = 0, clientY = 0;
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
+  }
+  return {
+    x: clientX - rect.left,
+    y: clientY - rect.top
+  };
+}
+
+function getMouseDistance(p1, p2) {
+  const dx = p1.x - p2.x;
+  const dy = p1.y - p2.y;
+  return Math.hypot(dx, dy);
+}
+
+// IMAGE TRAIL - ImageItem Class
+class ImageItem {
+  constructor(DOM_el) {
+    this.DOM = { el: DOM_el, inner: null };
+    this.DOM.inner = this.DOM.el.querySelector('.content__img-inner');
+    this.defaultStyle = { scale: 1, x: 0, y: 0, opacity: 0 };
+    this.rect = null;
+    this.getRect();
+    this.initEvents();
+  }
+
+  initEvents() {
+    this.resize = () => {
+      if(window.gsap) {
+        gsap.set(this.DOM.el, this.defaultStyle);
+      }
+      this.getRect();
+    };
+    window.addEventListener('resize', this.resize);
+  }
+
+  getRect() {
+    this.rect = this.DOM.el.getBoundingClientRect();
+  }
+}
+
+// IMAGE TRAIL - Main Class (优化版)
+class ImageTrail {
+  constructor(container) {
+    this.container = container;
+    this.DOM = { el: container };
+    this.images = [...container.querySelectorAll('.content__img')].map(img => new ImageItem(img));
+    this.imagesTotal = this.images.length;
+    this.imgPosition = 0;
+    this.zIndexVal = 1;
+    this.activeImagesCount = 0;
+    this.isIdle = true;
+    this.threshold = 80; // 还原到原始值
+    this.isMouseDown = false;
+    this.rafId = null;
+
+    this.mousePos = { x: 0, y: 0 };
+    this.lastMousePos = { x: 0, y: 0 };
+    this.cacheMousePos = { x: 0, y: 0 };
+
+    // 保存事件处理器为实例属性，以便dispose时移除
+    this.handlePointerMove = ev => {
+      const rect = container.getBoundingClientRect();
+      this.mousePos = getLocalPointerPos(ev, rect);
+    };
+
+    this.handleMouseDown = () => {
+      this.isMouseDown = true;
+      if (!this.rafId) {
+        this.rafId = requestAnimationFrame(() => this.render());
+      }
+    };
+
+    this.handleMouseUp = () => {
+      this.isMouseDown = false;
+    };
+
+    container.addEventListener('mousemove', this.handlePointerMove);
+    container.addEventListener('mousedown', this.handleMouseDown);
+    container.addEventListener('mouseup', this.handleMouseUp);
+    document.addEventListener('mouseup', this.handleMouseUp);
+
+    const initRender = ev => {
+      const rect = container.getBoundingClientRect();
+      this.mousePos = getLocalPointerPos(ev, rect);
+      this.cacheMousePos = { ...this.mousePos };
+      container.removeEventListener('mousemove', initRender);
+    };
+    container.addEventListener('mousemove', initRender);
+  }
+
+  render() {
+    if (!this.isMouseDown) {
+      this.rafId = null;
+      return;
+    }
+
+    let distance = getMouseDistance(this.mousePos, this.lastMousePos);
+    this.cacheMousePos.x = lerp(this.cacheMousePos.x, this.mousePos.x, 0.1);
+    this.cacheMousePos.y = lerp(this.cacheMousePos.y, this.mousePos.y, 0.1);
+
+    if (distance > this.threshold) {
+      this.showNextImage();
+      this.lastMousePos = { ...this.mousePos };
+    }
+    if (this.isIdle && this.zIndexVal !== 1) {
+      this.zIndexVal = 1;
+    }
+    this.rafId = requestAnimationFrame(() => this.render());
+  }
+
+  showNextImage() {
+    if (!window.gsap) return;
+
+    ++this.zIndexVal;
+    this.imgPosition = this.imgPosition < this.imagesTotal - 1 ? this.imgPosition + 1 : 0;
+    const img = this.images[this.imgPosition];
+
+    gsap.killTweensOf(img.DOM.el);
+    gsap.killTweensOf(img.DOM.inner);
+
+    // 简化动画：移除filter效果，只保留scale和opacity
+    gsap.timeline({
+      onStart: () => this.onImageActivated(),
+      onComplete: () => this.onImageDeactivated()
+    })
+    .fromTo(img.DOM.el, {
+      opacity: 1,
+      scale: 0,
+      zIndex: this.zIndexVal,
+      x: this.cacheMousePos.x - img.rect.width / 2,
+      y: this.cacheMousePos.y - img.rect.height / 2
+    }, {
+      duration: 0.25,
+      ease: 'power1.out',
+      scale: 1,
+      x: this.mousePos.x - img.rect.width / 2,
+      y: this.mousePos.y - img.rect.height / 2
+    }, 0)
+    .fromTo(img.DOM.inner, {
+      scale: 1.8
+    }, {
+      duration: 0.25,
+      ease: 'power1.out',
+      scale: 1
+    }, 0)
+    .to(img.DOM.el, {
+      duration: 0.25,
+      ease: 'power2.in',
+      opacity: 0,
+      scale: 0.3
+    }, 0.3);
+  }
+
+  onImageActivated() {
+    this.activeImagesCount++;
+    this.isIdle = false;
+  }
+
+  onImageDeactivated() {
+    this.activeImagesCount--;
+    if (this.activeImagesCount === 0) this.isIdle = true;
+  }
+
+  dispose() {
+    // 取消动画循环
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+
+    // 停止鼠标状态
+    this.isMouseDown = false;
+
+    // 移除所有事件监听器
+    if (this.container) {
+      this.container.removeEventListener('mousemove', this.handlePointerMove);
+      this.container.removeEventListener('mousedown', this.handleMouseDown);
+      this.container.removeEventListener('mouseup', this.handleMouseUp);
+    }
+    document.removeEventListener('mouseup', this.handleMouseUp);
+
+    // 清理引用
+    this.container = null;
+    this.DOM = null;
+    this.images = null;
+  }
+}
+
+// IMAGE TRAIL - Poster Images (12张)
+const posterImages = [
+  '海报/1.png',
+  '海报/2.jpg',
+  '海报/3.png',
+  '海报/4.png',
+  '海报/5.png',
+  '海报/6.png',
+  '海报/原创1(2).jpg',
+  '海报/原创2.jpg',
+  '海报/原创3.jpg',
+  '海报/画板 1 拷贝 4.png',
+  '海报/画板 1 拷贝 5.png',
+  '海报/画板 1 拷贝 6.png'
+];
+
+// IMAGE TRAIL - Global instance
+let imageTrailInstance = null;
+let posterTrailActive = false;
+
+// IMAGE TRAIL - Enter function
+function enterImageTrail() {
+  if (posterTrailActive) return;
+  posterTrailActive = true;
+
+  // 清除线框中的内容
+  const display = document.getElementById('i2-work-display');
+  const img = document.getElementById('i2-work-img');
+  const workDetail = document.getElementById('i2-work-detail');
+
+  if (display && display.style.opacity !== '0') {
+    img.style.opacity = '0';
+    display.style.opacity = '0';
+    display.style.display = 'none';
+  }
+
+  if (workDetail) {
+    workDetail.style.opacity = '0';
+    workDetail.style.display = 'none';
+  }
+
+  const trailContainer = document.getElementById('poster-trail-content');
+  if (!trailContainer) return;
+
+  // 直接显示空白容器
+  trailContainer.classList.add('active');
+
+  // 设置图片背景
+  const imgElements = trailContainer.querySelectorAll('.content__img-inner');
+  imgElements.forEach((el, i) => {
+    if (posterImages[i]) {
+      el.style.backgroundImage = `url('${posterImages[i]}')`;
+    }
+  });
+
+  // 初始化ImageTrail实例
+  if (window.gsap) {
+    // 清理旧实例（如果存在）
+    if (imageTrailInstance) {
+      imageTrailInstance.dispose();
+    }
+    imageTrailInstance = new ImageTrail(trailContainer);
+  }
+
+  // 延迟显示提示文字
+  setTimeout(() => {
+    const hint = document.getElementById('poster-trail-hint');
+    if (hint) {
+      hint.classList.add('show');
+      // 3秒后自动隐藏提示
+      setTimeout(() => {
+        hint.classList.remove('show');
+      }, 3000);
+    }
+  }, 300);
+}
+
+// IMAGE TRAIL - Exit function
+function exitImageTrail() {
+  if (!posterTrailActive) return;
+  posterTrailActive = false;
+
+  // 隐藏拖尾容器
+  const trailContainer = document.getElementById('poster-trail-content');
+  if (trailContainer) {
+    trailContainer.classList.remove('active');
+  }
+
+  // 隐藏提示文字
+  const hint = document.getElementById('poster-trail-hint');
+  if (hint) {
+    hint.classList.remove('show');
+  }
+
+  // 销毁ImageTrail实例
+  if (imageTrailInstance) {
+    imageTrailInstance.dispose();
+  }
+  imageTrailInstance = null;
+}
+
+// ASCII TEXT EFFECT - Shaders
+const asciiVertexShader = `
+varying vec2 vUv;
+uniform float uTime;
+uniform float uEnableWaves;
+
+void main() {
+    vUv = uv;
+    float time = uTime * 5.;
+    float waveFactor = uEnableWaves;
+    vec3 transformed = position;
+    transformed.x += sin(time + position.y) * 0.5 * waveFactor;
+    transformed.y += cos(time + position.z) * 0.15 * waveFactor;
+    transformed.z += sin(time + position.x) * waveFactor;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0);
+}
+`;
+
+const asciiFragmentShader = `
+varying vec2 vUv;
+uniform float uTime;
+uniform sampler2D uTexture;
+
+void main() {
+    float time = uTime;
+    vec2 pos = vUv;
+    float r = texture2D(uTexture, pos + cos(time * 2. - time + pos.x) * .01).r;
+    float g = texture2D(uTexture, pos + tan(time * .5 + pos.x - time) * .01).g;
+    float b = texture2D(uTexture, pos - cos(time * 2. + time + pos.y) * .01).b;
+    float a = texture2D(uTexture, pos).a;
+    gl_FragColor = vec4(r, g, b, a);
+}
+`;
+
+// ASCII TEXT EFFECT - Math helper
+Math.map = function(n, start, stop, start2, stop2) {
+  return ((n - start) / (stop - start)) * (stop2 - start2) + start2;
+};
+
+// ASCII TEXT EFFECT - AsciiFilter class (part 1: constructor)
+class AsciiFilter {
+  constructor(renderer, options = {}) {
+    this.renderer = renderer;
+    this.domElement = document.createElement('div');
+    this.domElement.style.position = 'absolute';
+    this.domElement.style.top = '0';
+    this.domElement.style.left = '0';
+    this.domElement.style.width = '100%';
+    this.domElement.style.height = '100%';
+
+    this.pre = document.createElement('pre');
+    this.domElement.appendChild(this.pre);
+
+    this.canvas = document.createElement('canvas');
+    this.context = this.canvas.getContext('2d');
+    this.canvas.style.display = 'none'; // 隐藏中间处理canvas
+    this.domElement.appendChild(this.canvas);
+
+    this.deg = 0;
+    this.invert = options.invert !== undefined ? options.invert : true;
+    this.fontSize = options.fontSize || 12;
+    this.fontFamily = options.fontFamily || "'Courier New', monospace";
+    this.charset = options.charset || ' .\'`^",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
+
+    if (this.context) {
+      this.context.imageSmoothingEnabled = false;
+    }
+
+    this.width = 0;
+    this.height = 0;
+    this.center = { x: 0, y: 0 };
+    this.mouse = { x: 0, y: 0 };
+    this.cols = 0;
+    this.rows = 0;
+
+    this.onMouseMove = this.onMouseMove.bind(this);
+    document.addEventListener('mousemove', this.onMouseMove);
+  }
+
+  setSize(width, height) {
+    this.width = width;
+    this.height = height;
+    this.renderer.setSize(width, height);
+    this.reset();
+    this.center = { x: width / 2, y: height / 2 };
+    this.mouse = { x: this.center.x, y: this.center.y };
+  }
+
+  reset() {
+    this.context.font = `${this.fontSize}px ${this.fontFamily}`;
+    const charWidth = this.context.measureText('A').width;
+    this.cols = Math.floor(this.width / (this.fontSize * (charWidth / this.fontSize)));
+    this.rows = Math.floor(this.height / this.fontSize);
+    this.canvas.width = this.cols;
+    this.canvas.height = this.rows;
+    this.pre.style.fontFamily = this.fontFamily;
+    this.pre.style.fontSize = `${this.fontSize}px`;
+    this.pre.style.margin = '0';
+    this.pre.style.padding = '0';
+    this.pre.style.lineHeight = '1em';
+    this.pre.style.position = 'absolute';
+    this.pre.style.left = '0';
+    this.pre.style.top = '0';
+    this.pre.style.zIndex = '9';
+    this.pre.style.backgroundAttachment = 'fixed';
+    this.pre.style.mixBlendMode = 'difference';
+  }
+
+  onMouseMove(e) {
+    const ratio = window.devicePixelRatio || 1;
+    this.mouse = { x: e.clientX * ratio, y: e.clientY * ratio };
+  }
+
+  render(scene, camera) {
+    this.renderer.render(scene, camera);
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+    this.context.clearRect(0, 0, w, h);
+    if (this.context && w && h) {
+      this.context.drawImage(this.renderer.domElement, 0, 0, w, h);
+    }
+    this.asciify(this.context, w, h);
+    this.hue();
+  }
+
+  hue() {
+    const dx = this.mouse.x - this.center.x;
+    const dy = this.mouse.y - this.center.y;
+    const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+    this.deg += (deg - this.deg) * 0.075;
+    this.domElement.style.filter = `hue-rotate(${this.deg.toFixed(1)}deg)`;
+  }
+
+  asciify(ctx, w, h) {
+    if (w && h) {
+      const imgData = ctx.getImageData(0, 0, w, h).data;
+      let str = '';
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = x * 4 + y * 4 * w;
+          const [r, g, b, a] = [imgData[i], imgData[i + 1], imgData[i + 2], imgData[i + 3]];
+          if (a === 0) {
+            str += ' ';
+            continue;
+          }
+          const gray = (0.3 * r + 0.6 * g + 0.1 * b) / 255;
+          let idx = Math.floor((1 - gray) * (this.charset.length - 1));
+          if (this.invert) idx = this.charset.length - idx - 1;
+          str += this.charset[idx];
+        }
+        str += '\n';
+      }
+      this.pre.innerHTML = str;
+    }
+  }
+
+  dispose() {
+    document.removeEventListener('mousemove', this.onMouseMove);
+  }
+}
+
+// ASCII TEXT EFFECT - CanvasTxt class
+class CanvasTxt {
+  constructor(txt, options = {}) {
+    this.canvas = document.createElement('canvas');
+    this.context = this.canvas.getContext('2d');
+    this.txt = txt;
+    this.fontSize = options.fontSize || 200;
+    this.fontFamily = options.fontFamily || 'Arial';
+    this.color = options.color || '#fdf9f3';
+    this.font = `600 ${this.fontSize}px ${this.fontFamily}`;
+  }
+
+  resize() {
+    this.context.font = this.font;
+    const metrics = this.context.measureText(this.txt);
+    const textWidth = Math.ceil(metrics.width) + 20;
+    const textHeight = Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) + 20;
+    this.canvas.width = textWidth;
+    this.canvas.height = textHeight;
+  }
+
+  render() {
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.fillStyle = this.color;
+    this.context.font = this.font;
+    const metrics = this.context.measureText(this.txt);
+    const yPos = 10 + metrics.actualBoundingBoxAscent;
+    this.context.fillText(this.txt, 10, yPos);
+  }
+
+  get width() { return this.canvas.width; }
+  get height() { return this.canvas.height; }
+  get texture() { return this.canvas; }
+}
+
+// ASCII TEXT EFFECT - CanvAscii class (part 1: constructor & init)
+class CanvAscii {
+  constructor(options, containerElem, width, height) {
+    this.textString = options.text;
+    this.asciiFontSize = options.asciiFontSize;
+    this.textFontSize = options.textFontSize;
+    this.textColor = options.textColor;
+    this.planeBaseHeight = options.planeBaseHeight;
+    this.container = containerElem;
+    this.width = width;
+    this.height = height;
+    this.enableWaves = options.enableWaves;
+
+    this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 1, 1000);
+    this.camera.position.z = 30;
+    this.scene = new THREE.Scene();
+    this.mouse = { x: this.width / 2, y: this.height / 2 };
+    this.animationFrameId = 0;
+    this.onMouseMove = this.onMouseMove.bind(this);
+  }
+
+  async init() {
+    try {
+      await document.fonts.load('600 200px "IBM Plex Mono"');
+      await document.fonts.load('500 12px "IBM Plex Mono"');
+    } catch {}
+    await document.fonts.ready;
+    this.setMesh();
+    this.setRenderer();
+  }
+
+  setMesh() {
+    this.textCanvas = new CanvasTxt(this.textString, {
+      fontSize: this.textFontSize,
+      fontFamily: 'IBM Plex Mono',
+      color: this.textColor,
+    });
+    this.textCanvas.resize();
+    this.textCanvas.render();
+
+    this.texture = new THREE.CanvasTexture(this.textCanvas.texture);
+    this.texture.minFilter = THREE.NearestFilter;
+
+    const textAspect = this.textCanvas.width / this.textCanvas.height;
+    const baseH = this.planeBaseHeight;
+    const planeW = baseH * textAspect;
+    const planeH = baseH;
+
+    this.geometry = new THREE.PlaneGeometry(planeW, planeH, 36, 36);
+    this.material = new THREE.ShaderMaterial({
+      vertexShader: asciiVertexShader,
+      fragmentShader: asciiFragmentShader,
+      transparent: true,
+      uniforms: {
+        uTime: { value: 0 },
+        uTexture: { value: this.texture },
+        uEnableWaves: { value: this.enableWaves ? 1.0 : 0.0 },
+      },
+    });
+
+    this.mesh = new THREE.Mesh(this.geometry, this.material);
+    this.scene.add(this.mesh);
+  }
+
+  setRenderer() {
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setClearColor(0x000000, 0);
+
+    // 直接使用Three.js渲染器的canvas，不进行ASCII转换
+    const canvas = this.renderer.domElement;
+    canvas.style.display = 'block';
+    canvas.style.margin = '0 auto';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.objectFit = 'contain';
+
+    this.container.appendChild(canvas);
+    this.setSize(this.width, this.height);
+
+    this.container.addEventListener('mousemove', this.onMouseMove);
+    this.container.addEventListener('touchmove', this.onMouseMove);
+  }
+
+  setSize(w, h) {
+    this.width = w;
+    this.height = h;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+    this.center = { x: w / 2, y: h / 2 };
+  }
+
+  load() {
+    this.animate();
+  }
+
+  onMouseMove(evt) {
+    const e = evt.touches ? evt.touches[0] : evt;
+    const bounds = this.container.getBoundingClientRect();
+    const x = e.clientX - bounds.left;
+    const y = e.clientY - bounds.top;
+    this.mouse = { x, y };
+  }
+
+  animate() {
+    const animateFrame = () => {
+      this.animationFrameId = requestAnimationFrame(animateFrame);
+      this.render();
+    };
+    animateFrame();
+  }
+
+  render() {
+    const time = new Date().getTime() * 0.001;
+    this.textCanvas.render();
+    this.texture.needsUpdate = true;
+    this.mesh.material.uniforms.uTime.value = Math.sin(time);
+    this.updateRotation();
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  updateRotation() {
+    const x = Math.map(this.mouse.y, 0, this.height, 0.5, -0.5);
+    const y = Math.map(this.mouse.x, 0, this.width, -0.5, 0.5);
+    this.mesh.rotation.x += (x - this.mesh.rotation.x) * 0.05;
+    this.mesh.rotation.y += (y - this.mesh.rotation.y) * 0.05;
+  }
+
+  clear() {
+    this.scene.traverse((obj) => {
+      if (obj.isMesh && obj.material) {
+        if (obj.material.map) obj.material.map.dispose();
+        obj.material.dispose();
+        obj.geometry.dispose();
+      }
+    });
+    this.scene.clear();
+  }
+
+  dispose() {
+    cancelAnimationFrame(this.animationFrameId);
+
+    // 移除renderer的canvas
+    if (this.renderer && this.renderer.domElement && this.renderer.domElement.parentNode) {
+      this.container.removeChild(this.renderer.domElement);
+    }
+
+    this.container.removeEventListener('mousemove', this.onMouseMove);
+    this.container.removeEventListener('touchmove', this.onMouseMove);
+    this.clear();
+
+    if (this.renderer) {
+      this.renderer.dispose();
+      this.renderer.forceContextLoss();
+    }
+  }
+}
+
+// ASCII TEXT EFFECT - Global instance and functions
+let contactAsciiInstance = null;
+
+async function initContactAscii() {
+  const container = document.getElementById('contact-ascii-container');
+  if (!container) return;
+
+  const { width, height } = container.getBoundingClientRect();
+  if (width === 0 || height === 0) return;
+
+  contactAsciiInstance = new CanvAscii(
+    {
+      text: 'Hey!',
+      asciiFontSize: 14,
+      textFontSize: 260,
+      textColor: '#fdf9f3',
+      planeBaseHeight: 10,
+      enableWaves: true
+    },
+    container,
+    width,
+    height
+  );
+
+  await contactAsciiInstance.init();
+  contactAsciiInstance.load();
+}
+
+function disposeContactAscii() {
+  if (contactAsciiInstance) {
+    contactAsciiInstance.dispose();
+    contactAsciiInstance = null;
+  }
+}
+
+// PARALLAX — gyroscope + mouse fallback
+(function(){
+  let tx = 0, ty = 0, cx = 0, cy = 0;
+
+  function apply() {
+    cx += (tx - cx) * 0.08;
+    cy += (ty - cy) * 0.08;
+    document.querySelectorAll('.bird-wrap').forEach((wrap, i) => {
+      const depth = 1.5 + i * 0.6;
+      wrap.style.transform = `translate(${cx*depth*8}px,${cy*depth*8}px)`;
+    });
+    requestAnimationFrame(apply);
+  }
+
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', e => {
+      tx = Math.max(-1, Math.min(1, (e.gamma || 0) / 30));
+      ty = Math.max(-1, Math.min(1, (e.beta  || 0) / 30));
+    });
+  }
+  document.addEventListener('mousemove', e => {
+    tx = (e.clientX / window.innerWidth  - 0.5) * 2;
+    ty = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  apply();
+})();
+
+// SHUFFLE TITLE — auto, random chars, pixel font
+(function(){
+  const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
+  const INTERVAL = 3500;
+  let shuffleInterval = null;
+
+  function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  function build(el) {
+    const text = el.textContent.trim();
+    el.innerHTML = '';
+    [...text].forEach(ch => {
+      if(ch === ' '){ const s=document.createElement('span');s.innerHTML='&nbsp;';s.style.display='inline-block';el.appendChild(s);return; }
+      const wrap = document.createElement('span');
+      wrap.className = 'sh-wrap';
+      const inner = document.createElement('span');
+      inner.className = 'sh-inner';
+      inner.dataset.real = ch;
+      const slot = document.createElement('span');
+      slot.textContent = ch;
+      inner.appendChild(slot);
+      wrap.appendChild(inner);
+      el.appendChild(wrap);
+    });
+    requestAnimationFrame(()=>{
+      el.querySelectorAll('.sh-wrap').forEach(w=>{
+        w.style.height = w.querySelector('.sh-inner').getBoundingClientRect().height + 'px';
+      });
+    });
+  }
+
+  function playRandom(el) {
+    const wraps = [...el.querySelectorAll('.sh-wrap')];
+    if(!wraps.length) return;
+    const count = Math.max(1, Math.floor(wraps.length * (0.3 + Math.random()*0.5)));
+    [...wraps].sort(()=>Math.random()-.5).slice(0,count).forEach((wrap,i)=>{
+      const inner = wrap.querySelector('.sh-inner');
+      const real = inner.dataset.real;
+      const scrambles = 2 + Math.floor(Math.random()*3);
+      setTimeout(()=>{
+        const h = parseFloat(wrap.style.height) || parseFloat(getComputedStyle(wrap).height);
+
+        inner.innerHTML = '';
+        inner.style.transition = 'none';
+        inner.style.transform = 'translateY(0)';
+        const slots = [];
+        for(let k=0;k<scrambles;k++) slots.push(rand(CHARSET));
+        slots.push(real);
+        slots.forEach(c=>{ const s=document.createElement('span');s.textContent=c;s.style.display='block';s.style.height=h+'px';s.style.lineHeight=h+'px';inner.appendChild(s); });
+
+        requestAnimationFrame(()=>{
+          requestAnimationFrame(()=>{
+            const dur = 800 + scrambles * 50;
+            inner.style.transition = 'transform ' + dur + 'ms cubic-bezier(0.23,1,0.32,1)';
+            const distance = h * scrambles;
+            inner.style.transform = 'translateY(-' + distance + 'px)';
+
+            setTimeout(()=>{
+              inner.innerHTML = '';
+              const s=document.createElement('span');s.textContent=real;s.style.display='block';inner.appendChild(s);
+              requestAnimationFrame(()=>{
+                inner.style.transition = 'none';
+                inner.style.transform = 'translateY(0)';
+              });
+            }, dur);
+          });
+        });
+      }, i*60);
+    });
+  }
+
+  function startShuffle() {
+    if(shuffleInterval) clearInterval(shuffleInterval);
+    document.querySelectorAll('.title-line').forEach(el=>playRandom(el));
+    shuffleInterval = setInterval(()=>{
+      document.querySelectorAll('.title-line').forEach(el=>playRandom(el));
+    }, INTERVAL);
+  }
+
+  function init() {
+    document.querySelectorAll('.title-line').forEach(el => build(el));
+    const _orig = window.startReveal;
+    window.startReveal = function(){
+      _orig.apply(this, arguments);
+      setTimeout(startShuffle, 500);
+    };
+  }
+
+  window.restartShuffle = startShuffle;
+
+  document.fonts ? document.fonts.ready.then(init) : window.addEventListener('load', init);
+})();
+
+// TILTED CARD — hero card 3D tilt effect
+(function(){
+  const card = document.getElementById('hero-card');
+  if(!card) return;
+  const AMP = 14, SCALE = 1.08;
+
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    const rx = (y - 0.5) * AMP;
+    const ry = -(x - 0.5) * AMP;
+
+    card.style.transition = 'transform 0.2s ease-out';
+    card.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg) scale(${0.88*SCALE})`;
+
+    card.querySelectorAll('#hero-card > *').forEach(el => {
+      el.style.transition = 'transform 0.2s ease-out';
+      el.style.transform = `translateZ(15px)`;
+    });
+  });
+
+  card.addEventListener('mouseleave', () => {
+    card.style.transition = 'transform 0.7s ease-out';
+    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(0.88)';
+    card.querySelectorAll('#hero-card > *').forEach(el => {
+      el.style.transition = 'transform 0.7s ease-out';
+      el.style.transform = 'translateZ(0)';
+    });
+  });
+})();
+
+// CARD GLOW TRACKING — mouse-following glow effect
+(function(){
+  const card = document.getElementById('hero-card');
+  if(!card) return;
+
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+    card.querySelector(':before') || (card.style.opacity = '1');
+  });
+
+  card.addEventListener('mouseenter', () => {
+    const style = getComputedStyle(card, '::before');
+    card.style.setProperty('--glow-active', '1');
+  });
+
+  card.addEventListener('mouseleave', () => {
+    card.style.setProperty('--glow-active', '0');
+  });
+})();
+
+// INNER TITLE PARALLAX SCROLL — text scrolls faster than background
+(function(){
+  const inner = document.getElementById('inner');
+  if(!inner) return;
+
+  function updateParallax(){
+    const scrollTop = inner.scrollTop;
+    const heading = inner.querySelector('.inner-heading');
+    const aboutSection = inner.querySelector('.about-section');
+
+    if(heading){
+      if(!heading.dataset.staggered){
+        heading.dataset.staggered='1';
+        const chars=[];
+        function wrapChars(node){
+          if(node.nodeType===3){
+            [...node.textContent].forEach(ch=>{
+              const s=document.createElement('span');
+              s.className='parallax-char';
+              s.textContent=ch;
+              s.style.display='inline-block';
+              chars.push(s);
+              node.parentNode.insertBefore(s,node);
+            });
+            node.remove();
+          } else if(node.nodeType===1 && node.nodeName!=='BR'){
+            [...node.childNodes].forEach(wrapChars);
+          }
+        }
+        [...heading.childNodes].forEach(wrapChars);
+        chars.forEach((ch,i)=>{ch.dataset.index=chars.length-1-i;});
+      }
+
+      const chars=heading.querySelectorAll('.parallax-char');
+      chars.forEach(ch=>{
+        const index=parseInt(ch.dataset.index);
+        const stagger=index*0.04;
+        const offset=scrollTop*(0.12+stagger);
+        ch.style.transform=`translateY(-${offset}px)`;
+      });
+    }
+
+    if(aboutSection){
+      const aboutOffset = scrollTop * 0.1;
+      aboutSection.style.transform = `translateY(-${aboutOffset}px)`;
+    }
+  }
+
+  inner.addEventListener('scroll', updateParallax, {passive: true});
+})();
+
+// WINDOWS SCALE ON SCROLL — shrink and disappear on scroll down
+(function(){
+  const inner = document.getElementById('inner');
+  if(!inner) return;
+
+  const winSys = document.getElementById('win-sys');
+  const winInfo = document.getElementById('win-info');
+
+  function updateWindowsScale(){
+    const scrollTop = inner.scrollTop;
+    const maxScroll = 800;
+
+    const scale = Math.max(0, 1 - scrollTop / maxScroll);
+
+    if(winSys) winSys.style.transform = `scale(${scale}) translateY(0)`;
+    if(winInfo) winInfo.style.transform = `scale(${scale}) translateY(0)`;
+  }
+
+  inner.addEventListener('scroll', updateWindowsScale, {passive: true});
+})();
+
+// CURVED TEXT ANIMATION
+let curvedTextInitialized = false;
+let curvedTextAnimationId = null;
+let curvedTextWrapper = null;
+let curvedTextHandlers = null;
+
+function initCurvedText(){
+  if(curvedTextInitialized) return;
+  curvedTextInitialized = true;
+
+  const textPath = document.getElementById('curve-textpath');
+  const wrapper = document.querySelector('.curved-text-wrap');
+  if(!textPath || !wrapper) return;
+
+  curvedTextWrapper = wrapper;
+
+  const text = '个人介绍 ✦ ';
+  const fullText = text.repeat(20);
+  textPath.textContent = fullText;
+
+  let offset = 0;
+  let dragging = false;
+  let lastX = 0;
+  const speed = 1.2;
+
+  function animate(){
+    if(!dragging){
+      offset -= speed;
+      textPath.setAttribute('startOffset', offset + 'px');
+    }
+    curvedTextAnimationId = requestAnimationFrame(animate);
+  }
+
+  const handlePointerDown = e => {
+    dragging = true;
+    lastX = e.clientX;
+    wrapper.style.cursor = 'grabbing';
+    e.target.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = e => {
+    if(!dragging) return;
+    const dx = e.clientX - lastX;
+    lastX = e.clientX;
+    offset += dx;
+    textPath.setAttribute('startOffset', offset + 'px');
+  };
+
+  const endDrag = () => {
+    if(!dragging) return;
+    dragging = false;
+    wrapper.style.cursor = 'grab';
+  };
+
+  curvedTextHandlers = {
+    pointerdown: handlePointerDown,
+    pointermove: handlePointerMove,
+    pointerup: endDrag,
+    pointerleave: endDrag
+  };
+
+  wrapper.addEventListener('pointerdown', curvedTextHandlers.pointerdown);
+  wrapper.addEventListener('pointermove', curvedTextHandlers.pointermove);
+  wrapper.addEventListener('pointerup', curvedTextHandlers.pointerup);
+  wrapper.addEventListener('pointerleave', curvedTextHandlers.pointerleave);
+
+  animate();
+}
+
+function stopCurvedText(){
+  if(curvedTextAnimationId){
+    cancelAnimationFrame(curvedTextAnimationId);
+    curvedTextAnimationId = null;
+  }
+
+  if(curvedTextWrapper && curvedTextHandlers){
+    curvedTextWrapper.removeEventListener('pointerdown', curvedTextHandlers.pointerdown);
+    curvedTextWrapper.removeEventListener('pointermove', curvedTextHandlers.pointermove);
+    curvedTextWrapper.removeEventListener('pointerup', curvedTextHandlers.pointerup);
+    curvedTextWrapper.removeEventListener('pointerleave', curvedTextHandlers.pointerleave);
+  }
+
+  curvedTextWrapper = null;
+  curvedTextHandlers = null;
+  curvedTextInitialized = false;
+
+  const textPath = document.getElementById('curve-textpath');
+  if(textPath) textPath.textContent = '';
+}
+
+// TEXT PRESSURE EFFECT
+let textPressureInitialized = false;
+let textPressureAnimationId = null;
+let textPressureElements = [];
+let textPressureMouse = { x: 0, y: 0 };
+let textPressureCursor = { x: 0, y: 0 };
+
+function calcDistance(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getAttrValue(distance, maxDist, minVal, maxVal) {
+  const val = maxVal - Math.abs((maxVal * distance) / maxDist);
+  return Math.max(minVal, val + minVal);
+}
+
+function initTextPressure() {
+  if (textPressureInitialized) return;
+  textPressureInitialized = true;
+
+  // 拆分标题文字
+  const titleEl = document.getElementById('contact-title-text');
+  if (titleEl) {
+    const titleText = titleEl.textContent;
+    titleEl.textContent = '';
+    titleEl.style.fontFamily = 'Roboto Flex, sans-serif';
+    titleEl.style.fontWeight = '100';
+
+    for (let char of titleText) {
+      const span = document.createElement('span');
+      span.textContent = char;
+      span.style.display = 'inline-block';
+      span.style.fontVariationSettings = "'wght' 400, 'wdth' 100";
+      titleEl.appendChild(span);
+      textPressureElements.push(span);
+    }
+  }
+
+  // 拆分描述文字
+  const descElements = document.querySelectorAll('[data-pressure-text="true"]');
+  descElements.forEach(el => {
+    const text = el.textContent;
+    el.textContent = '';
+    el.style.fontFamily = 'Roboto Flex, sans-serif';
+    el.style.fontWeight = '100';
+
+    for (let char of text) {
+      const span = document.createElement('span');
+      span.textContent = char;
+      span.style.display = 'inline-block';
+      span.style.fontVariationSettings = "'wght' 400, 'wdth' 100";
+      el.appendChild(span);
+      textPressureElements.push(span);
+    }
+  });
+
+  // 设置初始鼠标位置
+  const contactEl = document.getElementById('contact');
+  if (contactEl) {
+    const rect = contactEl.getBoundingClientRect();
+    textPressureMouse.x = rect.left + rect.width / 2;
+    textPressureMouse.y = rect.top + rect.height / 2;
+    textPressureCursor.x = textPressureMouse.x;
+    textPressureCursor.y = textPressureMouse.y;
+  }
+
+  // 监听鼠标移动
+  const handleMouseMove = e => {
+    textPressureCursor.x = e.clientX;
+    textPressureCursor.y = e.clientY;
+  };
+
+  window.addEventListener('mousemove', handleMouseMove);
+  window._textPressureHandleMouseMove = handleMouseMove;
+
+  // 动画循环
+  function animate() {
+    // 平滑跟随鼠标
+    textPressureMouse.x += (textPressureCursor.x - textPressureMouse.x) / 15;
+    textPressureMouse.y += (textPressureCursor.y - textPressureMouse.y) / 15;
+
+    const maxDist = 300;
+
+    textPressureElements.forEach(span => {
+      if (!span) return;
+
+      const rect = span.getBoundingClientRect();
+      const charCenter = {
+        x: rect.x + rect.width / 2,
+        y: rect.y + rect.height / 2
+      };
+
+      const d = calcDistance(textPressureMouse, charCenter);
+
+      const wdth = Math.floor(getAttrValue(d, maxDist, 5, 200));
+      const wght = Math.floor(getAttrValue(d, maxDist, 100, 900));
+
+      const newSettings = `'wght' ${wght}, 'wdth' ${wdth}`;
+
+      if (span.style.fontVariationSettings !== newSettings) {
+        span.style.fontVariationSettings = newSettings;
+      }
+    });
+
+    textPressureAnimationId = requestAnimationFrame(animate);
+  }
+
+  animate();
+}
+
+function stopTextPressure() {
+  if (textPressureAnimationId) {
+    cancelAnimationFrame(textPressureAnimationId);
+    textPressureAnimationId = null;
+  }
+
+  if (window._textPressureHandleMouseMove) {
+    window.removeEventListener('mousemove', window._textPressureHandleMouseMove);
+    window._textPressureHandleMouseMove = null;
+  }
+
+  textPressureElements = [];
+  textPressureInitialized = false;
+}
+
+
+// ASCII TEXT EFFECT (Canvas 2D版本)
+let asciiTextInstance = null;
+
+class SimpleAsciiText {
+  constructor(container, text, options = {}) {
+    this.container = container;
+    this.text = text;
+    this.fontSize = options.fontSize || 120;
+    this.asciiFontSize = options.asciiFontSize || 8;
+    this.charset = options.charset || ' .\'`^",:;Il!i~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$';
+
+    this.canvas = document.createElement('canvas');
+    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+
+    this.outputPre = document.createElement('pre');
+    this.outputPre.style.cssText = `
+      margin:0;padding:0;line-height:1em;
+      font-family:'Space Grotesk',monospace;
+      font-size:${this.asciiFontSize}px;
+      white-space:pre;
+      user-select:none;
+      text-align:center;
+      background:transparent;
+    `;
+
+    this.mouse = { x: 0, y: 0 };
+    this.onMouseMove = this.onMouseMove.bind(this);
+  }
+
+  init() {
+    this.container.appendChild(this.outputPre);
+    this.container.addEventListener('mousemove', this.onMouseMove);
+
+    const bounds = this.container.getBoundingClientRect();
+    this.cols = Math.floor(bounds.width / (this.asciiFontSize * 0.6));
+    this.rows = Math.floor(bounds.height / this.asciiFontSize);
+
+    this.render();
+  }
+
+  onMouseMove(e) {
+    const bounds = this.container.getBoundingClientRect();
+    this.mouse.x = e.clientX - bounds.left;
+    this.mouse.y = e.clientY - bounds.top;
+  }
+
+  render() {
+    const bounds = this.container.getBoundingClientRect();
+    this.canvas.width = bounds.width;
+    this.canvas.height = bounds.height;
+
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.ctx.fillStyle = '#fdf9f3';
+    this.ctx.font = `600 ${this.fontSize}px Space Grotesk`;
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+
+    this.ctx.fillText(this.text, this.canvas.width / 2, this.canvas.height / 2);
+
+    this.convertToAscii();
+  }
+
+  convertToAscii() {
+    try {
+      const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+      const pixels = imageData.data;
+
+      const charWidth = Math.floor(this.canvas.width / this.cols);
+      const charHeight = Math.floor(this.canvas.height / this.rows);
+
+      // 使用数组存储，最后一次性更新DOM
+      const lines = [];
+
+      for (let y = 0; y < this.rows; y++) {
+        let line = '';
+        for (let x = 0; x < this.cols; x++) {
+          const pixelX = x * charWidth;
+          const pixelY = y * charHeight;
+          const pixelIndex = (pixelY * this.canvas.width + pixelX) * 4;
+
+          const r = pixels[pixelIndex];
+          const g = pixels[pixelIndex + 1];
+          const b = pixels[pixelIndex + 2];
+          const a = pixels[pixelIndex + 3];
+
+          if (a === 0 || (r + g + b) < 50) {
+            line += '<span style="opacity:0">.</span>';
+          } else {
+            const brightness = (r + g + b) / 3 / 255;
+            const charIndex = Math.floor(brightness * (this.charset.length - 1));
+            const char = this.charset[charIndex];
+
+            const hue = (x / this.cols + y / this.rows) * 360;
+            line += `<span style="color:hsl(${hue},80%,60%)">${char}</span>`;
+          }
+        }
+        lines.push(line);
+      }
+
+      // 一次性更新DOM
+      this.outputPre.innerHTML = lines.join('\n');
+    } catch (err) {
+      console.error('ASCII conversion error:', err);
+    }
+  }
+
+  animate() {
+    this.animationId = requestAnimationFrame(() => this.animate());
+
+    // 节流：每3帧渲染一次
+    if (!this.frameCount) this.frameCount = 0;
+    this.frameCount++;
+    if (this.frameCount % 3 !== 0) return;
+
+    this.render();
+  }
+
+  start() {
+    this.animate();
+  }
+
+  dispose() {
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+    this.container.removeEventListener('mousemove', this.onMouseMove);
+    if (this.outputPre && this.outputPre.parentNode) {
+      this.container.removeChild(this.outputPre);
+    }
+    // 清空引用
+    this.canvas = null;
+    this.ctx = null;
+    this.outputPre = null;
+  }
+}
+
+function initAsciiText(retryCount = 0) {
+  const container = document.getElementById('ascii-text-container');
+  if (!container || asciiTextInstance) return;
+
+  const bounds = container.getBoundingClientRect();
+  if (bounds.width === 0 || bounds.height === 0) {
+    if (retryCount < 5) {
+      console.log(`ASCII: Container has no size, retrying... (${retryCount + 1}/5)`);
+      setTimeout(() => initAsciiText(retryCount + 1), 300);
+    } else {
+      console.error('ASCII: Failed to initialize after 5 retries');
+    }
+    return;
+  }
+
+  try {
+    asciiTextInstance = new SimpleAsciiText(container, 'STUDIO', {
+      fontSize: 150,
+      asciiFontSize: 10
+    });
+
+    asciiTextInstance.init();
+    asciiTextInstance.start();
+    console.log('ASCII effect loaded successfully');
+  } catch (err) {
+    console.error('ASCII creation error:', err);
+  }
+}
+
+function stopAsciiText() {
+  if (asciiTextInstance) {
+    asciiTextInstance.dispose();
+    asciiTextInstance = null;
+  }
+}
+
+// SEAMLESS MARQUEE
+(function(){
+  const track = document.querySelector('.deco-track');
+  if(!track) return;
+  let pos = 0;
+  const speed = 0.5;
+
+  function loop(){
+    pos -= speed;
+    track.style.transform = `translateX(${pos}px)`;
+
+    const first = track.querySelector('span');
+    if(first){
+      const rect = first.getBoundingClientRect();
+      const containerRect = track.parentElement.getBoundingClientRect();
+      if(rect.right < containerRect.left){
+        track.appendChild(first);
+        pos += first.offsetWidth;
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+// INNER2 PLASMA BACKGROUND
+(function(){
+  const canvas = document.getElementById('i2-plasma-bg');
+  if(!canvas) return;
+
+  let renderer, scene, camera, material, mesh;
+  let animFrame = null;
+  let time = 0;
+  const startTime = performance.now();
+
+  const vertexShader = `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = vec4(position, 1.0);
+    }
+  `;
+
+  const fragmentShader = `
+    uniform vec2 iResolution;
+    uniform float iTime;
+    uniform vec3 uCustomColor;
+    uniform float uSpeed;
+    uniform float uOpacity;
+    varying vec2 vUv;
+
+    void mainImage(out vec4 o, vec2 C) {
+      vec2 center = iResolution.xy * 0.5;
+
+      float i, d, z, T = iTime * uSpeed;
+      vec3 O, p, S;
+
+      for (vec2 r = iResolution.xy, Q; ++i < 60.; O += o.w/d*o.xyz) {
+        p = z*normalize(vec3(C-.5*r,r.y));
+        p.z -= 4.;
+        S = p;
+        d = p.y-T;
+
+        p.x += .4*(1.+p.y)*sin(d + p.x*0.1)*cos(.34*d + p.x*0.05);
+        Q = p.xz * mat2(cos(p.y+vec4(0,11,33,0)-T));
+        z+= d = abs(sqrt(dot(Q,Q)) - .25*(5.+S.y))/3.+8e-4;
+        o = 1.+sin(S.y+p.z*.5+S.z-length(S-p)+vec4(2,1,0,8));
+      }
+
+      o.xyz = tanh(O/1e4);
+    }
+
+    void main() {
+      vec4 o = vec4(0.0);
+      vec2 fragCoord = vUv * iResolution;
+      mainImage(o, fragCoord);
+
+      vec3 rgb = clamp(o.rgb, 0.0, 1.0);
+      float intensity = (rgb.r + rgb.g + rgb.b) / 3.0;
+      vec3 finalColor = intensity * uCustomColor;
+
+      float alpha = length(rgb) * uOpacity;
+      gl_FragColor = vec4(finalColor, alpha);
+    }
+  `;
+
+  function init() {
+    // Three.js setup
+    renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      alpha: true,
+      antialias: false
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearAlpha(0);
+
+    scene = new THREE.Scene();
+    camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    // Shader material
+    material = new THREE.ShaderMaterial({
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      uniforms: {
+        iTime: { value: 0 },
+        iResolution: { value: new THREE.Vector2() },
+        uCustomColor: { value: new THREE.Color(0x3B82F6) }, // #3B82F6
+        uSpeed: { value: 0.4 },
+        uOpacity: { value: 0.8 }
+      },
+      transparent: true,
+      depthTest: false,
+      depthWrite: false
+    });
+
+    const geometry = new THREE.PlaneGeometry(2, 2);
+    mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    resize();
+    window.addEventListener('resize', resize);
+  }
+
+  function resize() {
+    if(!renderer) return;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    // 降低渲染分辨率至75%以提升性能
+    const pixelRatio = Math.min(window.devicePixelRatio * 0.75, 1.5);
+    renderer.setPixelRatio(pixelRatio);
+    renderer.setSize(w, h);
+    material.uniforms.iResolution.value.set(w, h);
+  }
+
+  let lastFrameTime = 0;
+  const targetFPS = 45; // 限制帧率到45fps
+  const frameInterval = 1000 / targetFPS;
+
+  function animate(currentTime) {
+    const elapsed = currentTime - lastFrameTime;
+    if(elapsed < frameInterval) {
+      animFrame = requestAnimationFrame(animate);
+      return;
+    }
+    lastFrameTime = currentTime - (elapsed % frameInterval);
+
+    time = (performance.now() - startTime) * 0.001;
+    material.uniforms.iTime.value = time;
+    renderer.render(scene, camera);
+    animFrame = requestAnimationFrame(animate);
+  }
+
+  function start() {
+    if(!renderer) init();
+    if(!animFrame) animate(0);
+  }
+
+  function stop() {
+    if(animFrame) {
+      cancelAnimationFrame(animFrame);
+      animFrame = null;
+    }
+  }
+
+  function dispose() {
+    stop();
+    window.removeEventListener('resize', resize);
+    if(mesh) {
+      mesh.geometry.dispose();
+      material.dispose();
+    }
+    if(renderer) {
+      renderer.dispose();
+    }
+  }
+
+  // 初始化但不启动
+  init();
+
+  // Export control functions
+  window.i2PlasmaBg = { start, stop, dispose };
+})();
+
+// PAGE VISIBILITY — 自动暂停/恢复动画以提升性能
+(function(){
+  let isPageVisible = !document.hidden;
+
+  function handleVisibilityChange() {
+    isPageVisible = !document.hidden;
+
+    if(isPageVisible) {
+      // 页面可见，恢复当前页面的动画
+      if(currentPage === 'home') {
+        if(window.bgFluid) window.bgFluid.start();
+      } else if(currentPage === 'inner2') {
+        if(window.i2PlasmaBg) window.i2PlasmaBg.start();
+      }
+    } else {
+      // 页面隐藏，暂停所有动画
+      if(window.bgFluid) window.bgFluid.stop();
+      if(window.i2PlasmaBg) window.i2PlasmaBg.stop();
+    }
+  }
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+})();
+</script>
+</body>
+</html>
